@@ -1,0 +1,8 @@
+{
+  "name": "practice-snapshot-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Four Quadrants internal Practice Snapshot dashboard (read-only Airtable proxy).",
+  "type": "module",
+  "engines": { "node": ">=18" }
+}
