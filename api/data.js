@@ -36,7 +36,7 @@ const RES = {
     table: 'tblpbRJJH83aVrNW0',
     fields: ['fldAFjgH9h49Fem9x','fldDIczZcGe7994dp','fldExbHIOMSmNuQ0o','fldno1MWgUylqz81C',
              'fldUIyId0U9TNzQQM','fldWiJ8Hx1cLPc9rQ','fld8ghrOGS9UHq0mT','fldJUgl9j19XAKBJr',
-             'fldzIv29NmW3SkJfV','fldDO0DQbwPi0dWZx','fldAsDcCvj9buY2kb'],
+             'fldzIv29NmW3SkJfV','fldDO0DQbwPi0dWZx','fldAsDcCvj9buY2kb','fldrTTzJPcCnGaTmu'],
     sort: [{ field: 'fldAFjgH9h49Fem9x', dir: 'asc' }]
   },
   monthly: {
