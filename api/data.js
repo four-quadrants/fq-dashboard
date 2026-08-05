@@ -27,7 +27,10 @@ const FC_FIELDS = [
 const PORTFOLIO_FIELDS = [
   'fldDJyaIgXrGYxYel','fld8JIScPigMRgbo7','flduzI96lzLTBfWHB','fld7vZYNHcrf9EiLx',
   'fldOTIraAKAFUleOD','fldOjlOk0vU2q8bXV','fldHCZTLf6ndNGonS','fldnyu7Cj9xJG0tJi',
-  'flds1OagHAjjmLLRq','fld6KnbwIsCDH7DcR','fld36UNJrPWGkbWyk','fldPJaOYDrFGQKPR7'
+  'flds1OagHAjjmLLRq','fld6KnbwIsCDH7DcR','fld36UNJrPWGkbWyk','fldPJaOYDrFGQKPR7',
+  // doctor-day columns — fallback for per-day when Practice Days Worked is blank
+  'flddVZLB1It45H8zA','fldLjdYgDDWp547g4','fldBGCM7UntlMkSBX','fld3hhx3bLB09XaQ2',
+  'fldswmNXf9rCbHaFw','fldekkdWDhz5YJev9','fldJvzltfI4Q9wkdq'
 ];
 
 // Whitelisted resources -> table + exact fields + optional practice-link filter + sort.
@@ -53,13 +56,20 @@ const RES = {
     sort: [{ field: 'fldbys0bquQ4Jv2B0', dir: 'asc' }],
     requiresPractice: true
   },
+  doctors: {
+    table: 'tblVKhoeigxxBR6x3',
+    fields: ['fldFQ9utJUs1i2cjb','fldwbKiIfMg691cxa','fldhlpqaHellsHnzf','fldxSnUuARGXuIm7V','fldQdubWKbVGhlnjL'],
+    linkFieldName: 'Practice UID',
+    sort: [{ field: 'fldwbKiIfMg691cxa', dir: 'asc' }],
+    requiresPractice: true
+  },
   // Book-wide: recent monthly rows across all practices (the app keeps each practice's
   // latest month). Capped so the serverless call stays fast and well under the timeout.
   portfolio: {
     table: 'tblqHbZTnY6WG8Bp8',
     fields: PORTFOLIO_FIELDS,
     sort: [{ field: 'fldDJyaIgXrGYxYel', dir: 'desc' }],
-    maxRecords: 900
+    maxRecords: 1800
   }
 };
 

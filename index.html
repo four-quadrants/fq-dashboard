@@ -186,7 +186,8 @@ tr.prow{cursor:pointer}
 <script>
 "use strict";
 const BASE='app6Ki6RiJWFcuifz';
-const T_PRACTICES='tblpbRJJH83aVrNW0', T_MONTHLY='tblqHbZTnY6WG8Bp8', T_FORECASTS='tblVh9PfDQKEyBrFJ';
+const T_PRACTICES='tblpbRJJH83aVrNW0', T_MONTHLY='tblqHbZTnY6WG8Bp8', T_FORECASTS='tblVh9PfDQKEyBrFJ', T_DOCTORS='tblVKhoeigxxBR6x3';
+const DR={name:'fldFQ9utJUs1i2cjb',slot:'fldwbKiIfMg691cxa',role:'fldhlpqaHellsHnzf',link:'fldqX2hRgsD63wp1D',ended:'fldxSnUuARGXuIm7V',start:'fldQdubWKbVGhlnjL'};
 const LIST_TOOL='mcp__22f54f58-5001-47b6-ac40-cde6185479e4__list_records_for_table';
 
 const PR={name:'fldAFjgH9h49Fem9x',uid:'fldDIczZcGe7994dp',type:'fldExbHIOMSmNuQ0o',state:'fldno1MWgUylqz81C',renewal:'fldUIyId0U9TNzQQM',dataStatus:'fldWiJ8Hx1cLPc9rQ',trackOnly:'fld8ghrOGS9UHq0mT',latestData:'fldJUgl9j19XAKBJr',reportStatus:'fldzIv29NmW3SkJfV',reportDue:'fldDO0DQbwPi0dWZx',missing:'fldAsDcCvj9buY2kb',logo:'fldrTTzJPcCnGaTmu'};
@@ -241,7 +242,7 @@ const isDerived=k=>!!DERIVED[k];
 
 const state={practices:[],current:null,rowsRaw:[],locations:[],location:'All',isOrtho:false,
   screen:'home',hf:{q:'',type:'',stt:'',attn:false},
-  pf:{q:'',type:'',stt:'',renewal:'',sortKey:'netP',sortDir:'desc'},portfolioRows:null,
+  pf:{q:'',type:'',stt:'',renewal:'',sortKey:'netP',sortDir:'desc',bdim:'stt',smetric:'grossP'},portfolioRows:null,
   tab:localStorage.getItem(LS+'_tab')||'overview',
   metric:localStorage.getItem(LS+'_metric')||'netP',
   trendMode:localStorage.getItem(LS+'_tmode')||'yoy',
@@ -281,9 +282,10 @@ async function apiRecords(resource,practice){
   if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo],sort:[{fieldId:PR.name,direction:'asc'}]});
   if(resource==='monthly')return atList(T_MONTHLY,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[MD.link,[practice.id]]}]},sort:[{fieldId:MD.month,direction:'desc'}]});
   if(resource==='forecasts')return atList(T_FORECASTS,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[FC.link,[practice.id]]}]},sort:[{fieldId:FC.month,direction:'asc'}]}).catch(()=>[]);
-  if(resource==='portfolio'){const fids=[MD.month,MD.link,MD.netP,MD.netC,MD.grossP,MD.adj,MD.totPat,MD.newPat,MD.days,MD.hygP,MD.appts,MD.newStarts];
+  if(resource==='doctors')return atList(T_DOCTORS,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[DR.link,[practice.id]]}]},fieldIds:[DR.name,DR.slot,DR.role,DR.ended,DR.start],sort:[{fieldId:DR.slot,direction:'asc'}]}).catch(()=>[]);
+  if(resource==='portfolio'){const fids=[MD.month,MD.link,MD.netP,MD.netC,MD.grossP,MD.adj,MD.totPat,MD.newPat,MD.days,MD.hygP,MD.appts,MD.newStarts,MD.d1d,MD.d2d,MD.d3d,MD.d4d,MD.d5d,MD.d6d,MD.d7d];
     let out=[],cursor=null,pages=0;
-    while(pages<9){const args={baseId:BASE,tableId:T_MONTHLY,fieldIds:fids,sort:[{fieldId:MD.month,direction:'desc'}],pageSize:100};if(cursor)args.cursor=cursor;
+    while(pages<18){const args={baseId:BASE,tableId:T_MONTHLY,fieldIds:fids,sort:[{fieldId:MD.month,direction:'desc'}],pageSize:100};if(cursor)args.cursor=cursor;
       const r=await window.cowork.callMcpTool(LIST_TOOL,args);if(r&&r.isError)throw new Error('tool error');
       const data=r.structuredContent??JSON.parse(r.content[0].text);out=out.concat(data.records||[]);cursor=data.nextCursor;pages++;if(!cursor)break;}
     return out;}
@@ -305,12 +307,36 @@ async function loadPractices(){
     logo:logoUrl(c[PR.logo])};});
 }
 async function loadPractice(p){
-  const [mrecs,frecs]=await Promise.all([apiRecords('monthly',p),apiRecords('forecasts',p).catch(()=>[])]);
+  const [mrecs,frecs,drecs]=await Promise.all([apiRecords('monthly',p),apiRecords('forecasts',p).catch(()=>[]),apiRecords('doctors',p).catch(()=>[])]);
   state.rowsRaw=mrecs.map(r=>parseRow(r.cellValuesByFieldId)).filter(m=>m.ym);
   state.fcRaw=frecs.map(r=>parseFc(r.cellValuesByFieldId)).filter(f=>f.ym);
+  state.docNames=buildDocNames(drecs);
   state.locations=[...new Set(state.rowsRaw.map(m=>m.loc))];
   if(!state.locations.includes(state.location))state.location='All';
 }
+// slot -> best doctor name (prefer current/no-end-date, else latest start); {1:'Dr. …', …}
+function buildDocNames(drecs){
+  const bySlot={};
+  drecs.forEach(r=>{const c=r.cellValuesByFieldId,slot=num(c[DR.slot]);if(!slot)return;
+    const cand={name:c[DR.name]||'',role:sel(c[DR.role]),ended:c[DR.ended]||'',start:c[DR.start]||''};
+    const cur=bySlot[slot];
+    if(!cur) bySlot[slot]=cand;
+    else{const better=(!cand.ended&&cur.ended)||((!!cand.ended===!!cur.ended)&&cand.start>cur.start);if(better)bySlot[slot]=cand;}
+  });
+  return bySlot;
+}
+// doctor slots to show: has production within the displayed window AND the current occupant hasn't left.
+// Departed doctors (End Date set) are excluded; so are slots with 0 production across the window.
+function activeDocSlots(ms){
+  const win=(ms||months()).slice(-24);
+  const set=[];
+  for(let i=0;i<7;i++){const slot=i+1,d=state.docNames&&state.docNames[slot];
+    if(d&&d.ended)continue;                                   // no longer at the practice
+    if(win.some(m=>m['doc'+slot]&&m['doc'+slot]!==0))set.push(slot);
+  }
+  return set;
+}
+function docLabel(slot){const d=state.docNames&&state.docNames[slot];return (d&&d.name)?d.name:('Doctor '+slot);}
 function parseFc(c){const d=c[FC.month]||'';return{ym:d.slice(0,7),year:num(c[FC.year]),loc:c[FC.loc]||'Main',
   grossP:num(c[FC.grossP]),netP:num(c[FC.netP]),grossC:num(c[FC.grossC]),netC:num(c[FC.netC]),adj:num(c[FC.adj]),hyg:num(c[FC.hyg]),
   totPat:num(c[FC.totPat]),newPat:num(c[FC.newPat]),days:num(c[FC.days]),appts:num(c[FC.appts]),newStarts:num(c[FC.newStarts])};}
@@ -349,7 +375,11 @@ function parseRow(c){
   const d=c[MD.month]||'';
   return{ym:d.slice(0,7),date:d,loc:c[MD.loc]||'Main',
     grossP:num(c[MD.grossP]),netP:num(c[MD.netP]),adj:num(c[MD.adj]),grossC:num(c[MD.grossC]),netC:num(c[MD.netC]),
-    totPat:num(c[MD.totPat]),newPat:num(c[MD.newPat]),days:num(c[MD.days]),
+    totPat:num(c[MD.totPat]),newPat:num(c[MD.newPat]),
+    // Practice days: use "Practice Days Worked" if entered; otherwise fall back to the days
+    // actually worked (max of the doctor-day columns) so solo/other practices that only fill
+    // the doctor-days column still get correct per-day figures.
+    days:(num(c[MD.days])||Math.max(0,...doctors.map(x=>x.days))),
     appts:num(c[MD.appts]),newStarts:num(c[MD.newStarts]),npExam:num(c[MD.npExam]),txConsult:num(c[MD.txConsult]),
     doctors,hyg:num(c[MD.hygP])};
 }
@@ -362,6 +392,8 @@ function months(){
     ['grossP','netP','adj','grossC','netC','totPat','newPat','days','appts','newStarts','npExam','txConsult','hyg'].forEach(k=>t[k]+=m[k]);
     m.doctors.forEach((d,i)=>{t.doctors[i].prod+=d.prod;t.doctors[i].days+=d.days;});
   });
+  // expose each doctor's production as doc1..doc7 so agg()/mval() work uniformly
+  Object.values(byYm).forEach(t=>{for(let i=0;i<7;i++)t['doc'+(i+1)]=t.doctors[i].prod;});
   return Object.values(byYm).sort((a,b)=>a.ym<b.ym?-1:1);
 }
 
@@ -370,7 +402,10 @@ function mval(m,k){const d=DERIVED[k];if(!d)return m[k]||0;const den=m[d.den];if
 // aggregate over a set of months (sum for raw, blended for derived)
 function agg(ms,k){const d=DERIVED[k];
   if(!d)return ms.reduce((a,m)=>a+(m[k]||0),0);
-  const n=ms.reduce((a,m)=>a+(m[d.num]||0),0),den=ms.reduce((a,m)=>a+(m[d.den]||0),0);
+  // blended ratio: only count months whose denominator is actually present, so e.g. a month
+  // with production but no Practice Days Worked doesn't distort per-day figures.
+  let n=0,den=0;
+  ms.forEach(m=>{const dv=m[d.den]||0;if(dv>0){n+=(m[d.num]||0);den+=dv;}});
   return den?n/den*(d.scale||1):null;}
 // any non-null, non-zero value for this metric across the months? (used to hide N/A rows/cols)
 function nzA(ms,k){return ms.some(m=>{const v=mval(m,k);return v!=null&&v!==0;});}
@@ -676,9 +711,22 @@ function renderData(){
   const rawBody=recent.map(m=>`<tr><td>${fmtMonth(m.ym)}</td>${rawCols.map(k=>`<td>${fmt(mval(m,k),M[k].fmt)}</td>`).join('')}</tr>`).join('');
   const effHead=`<tr><th>Month</th>${effCols.map(k=>`<th>${M[k].label}</th>`).join('')}</tr>`;
   const effBody=recent.map(m=>`<tr><td>${fmtMonth(m.ym)}</td>${effCols.map(k=>`<td>${colVal(k,mval(m,k))}</td>`).join('')}</tr>`).join('');
+  // ---- providers folded INTO the Totals table: each doctor's production + share of gross ----
+  const slots=state.isOrtho?[]:activeDocSlots(ms);
+  let provTot='';
+  if(slots.length){
+    const grossT=agg(t12,'grossP'),grossPr=p12.length?agg(p12,'grossP'):null,dash='<span class="muted">—</span>';
+    const rows=slots.map(n=>{
+      const aP=agg(t12,'doc'+n),bP=p12.length?agg(p12,'doc'+n):null,dP=delta(aP,bP);
+      const aPct=grossT?aP/grossT*100:null,bPct=(bP!=null&&grossPr)?bP/grossPr*100:null,dPct=delta(aPct,bPct);
+      return `<tr><td>${esc(docLabel(n))}</td><td>${fmt(aP,'money')}</td><td>${bP==null?dash:fmt(bP,'money')}</td><td class="${dP.cls}">${dP.txt}</td><td>${fmt(aP/(t12.length||1),'money')}</td></tr>`
+        +`<tr><td style="padding-left:18px;color:var(--muted,#5b6472)">${esc(docLabel(n))} — % of production</td><td>${aPct==null?dash:fmt(aPct,'pct')}</td><td>${bPct==null?dash:fmt(bPct,'pct')}</td><td class="${dPct.cls}">${dPct.txt}</td><td>${dash}</td></tr>`;
+    }).join('');
+    provTot=`<tr><td colspan="5" style="font-weight:700;padding-top:12px">Providers — production &amp; share of gross production</td></tr>${rows}`;
+  }
   el.innerHTML=`
     <div class="panel"><h3>Totals — trailing 12 vs prior 12</h3>
-      <div class="tw"><table><thead><tr><th>Metric</th><th>Trailing 12</th><th>Prior 12</th><th>Change</th><th>Monthly avg</th></tr></thead><tbody>${totRows}</tbody></table></div></div>
+      <div class="tw"><table><thead><tr><th>Metric</th><th>Trailing 12</th><th>Prior 12</th><th>Change</th><th>Monthly avg</th></tr></thead><tbody>${totRows}${provTot}</tbody></table></div></div>
     <div class="panel"><h3>Efficiency — blended, trailing 12 vs prior 12</h3>
       <div class="tw"><table><thead><tr><th>Metric</th><th>Trailing 12</th><th>Prior 12</th><th>Change</th></tr></thead><tbody>${effRows}</tbody></table></div>
       <div class="note">Efficiency figures are blended over the window (sum of the numerator ÷ sum of the denominator), not an average of monthly ratios.</div></div>
@@ -800,22 +848,70 @@ const PCOLS=[{k:'netP',label:'Net Prod',fmt:'money'},{k:'netC',label:'Net Coll',
 async function openPortfolio(){
   showScreen('portfolio');
   const el=document.getElementById('portfolio');
-  el.innerHTML='<div class="loading"><span class="spin"></span>Building the portfolio — pulling each practice’s latest month…</div>';
+  el.innerHTML='<div class="loading"><span class="spin"></span>Building the portfolio — pulling recent history across the book…</div>';
   try{await loadPortfolio();renderPortfolio();}
   catch(err){el.innerHTML='<div class="panel"><div class="err">Could not build the portfolio: '+esc(err.message||err)+'</div></div>';}
 }
+// shift a 'YYYY-MM' key by n calendar months
+function ymShift(ym,n){const a=ym.split('-'),idx=(+a[0])*12+(+a[1]-1)+n;return Math.floor(idx/12)+'-'+String(idx%12+1).padStart(2,'0');}
+// sum a key over the 3 months ending at endYm (inclusive); null if any month is missing
+function win3(h,endYm,key){let s=0;for(let i=0;i<3;i++){const r=h[ymShift(endYm,-i)];if(!r)return null;s+=r[key]||0;}return s;}
 async function loadPortfolio(){
   if(state.portfolioRows)return;
   const recs=await apiRecords('portfolio');
-  const agg={};
+  // per-practice monthly history (multi-location summed per month): pid -> { ym -> aggregated month }
+  const hist={};
   recs.forEach(rec=>{const c=rec.cellValuesByFieldId,link=c[MD.link],l0=Array.isArray(link)&&link.length?link[0]:null,pid=l0?(typeof l0==='string'?l0:l0.id):null;if(!pid)return;
     const ym=(c[MD.month]||'').slice(0,7);if(!ym)return;
-    let b=agg[pid];
-    if(!b||ym>b.ym){b=agg[pid]={ym,netP:0,netC:0,grossP:0,adj:0,totPat:0,newPat:0,days:0,hyg:0,appts:0,newStarts:0};}
-    if(ym===b.ym){b.netP+=num(c[MD.netP]);b.netC+=num(c[MD.netC]);b.grossP+=num(c[MD.grossP]);b.adj+=num(c[MD.adj]);b.totPat+=num(c[MD.totPat]);b.newPat+=num(c[MD.newPat]);b.days+=num(c[MD.days]);b.hyg+=num(c[MD.hygP]);b.appts+=num(c[MD.appts]);b.newStarts+=num(c[MD.newStarts]);}});
-  state.portfolioRows=state.practices.map(p=>{const b=agg[p.id];if(!b)return{p,ym:null};
+    const h=hist[pid]||(hist[pid]={});
+    const b=h[ym]||(h[ym]={ym,netP:0,netC:0,grossP:0,adj:0,totPat:0,newPat:0,days:0,hyg:0,appts:0,newStarts:0});
+    const rowDays=num(c[MD.days])||Math.max(0,num(c[MD.d1d]),num(c[MD.d2d]),num(c[MD.d3d]),num(c[MD.d4d]),num(c[MD.d5d]),num(c[MD.d6d]),num(c[MD.d7d]));
+    b.netP+=num(c[MD.netP]);b.netC+=num(c[MD.netC]);b.grossP+=num(c[MD.grossP]);b.adj+=num(c[MD.adj]);b.totPat+=num(c[MD.totPat]);b.newPat+=num(c[MD.newPat]);b.days+=rowDays;b.hyg+=num(c[MD.hygP]);b.appts+=num(c[MD.appts]);b.newStarts+=num(c[MD.newStarts]);});
+  state.portfolioHist=hist;
+  state.portfolioRows=state.practices.map(p=>{const h=hist[p.id];if(!h)return{p,ym:null};
+    const yms=Object.keys(h).sort();const b=h[yms[yms.length-1]];
+    const last12=yms.slice(-12).map(k=>h[k]),t12={};
+    ['netP','netC','grossP','adj','totPat','newPat','days','hyg','appts','newStarts'].forEach(k=>t12[k]=last12.reduce((a,m)=>a+(m[k]||0),0));
     return{p,ym:b.ym,netP:b.netP,netC:b.netC,grossP:b.grossP,adj:b.adj,totPat:b.totPat,newPat:b.newPat,days:b.days,hyg:b.hyg,appts:b.appts,newStarts:b.newStarts,
-      collRatio:b.netP?b.netC/b.netP*100:null,netPerDay:b.days?b.netP/b.days:null,netPerPat:b.totPat?b.netP/b.totPat:null,newPatPct:b.totPat?b.newPat/b.totPat*100:null};});
+      collRatio:b.netP?b.netC/b.netP*100:null,netPerDay:b.days?b.netP/b.days:null,netPerPat:b.totPat?b.netP/b.totPat:null,newPatPct:b.totPat?b.newPat/b.totPat*100:null,t12};});
+}
+// US Census region from 2-letter state code (used for the "Region" grouping)
+const REGION={CT:'Northeast',ME:'Northeast',MA:'Northeast',NH:'Northeast',RI:'Northeast',VT:'Northeast',NJ:'Northeast',NY:'Northeast',PA:'Northeast',
+  IL:'Midwest',IN:'Midwest',MI:'Midwest',OH:'Midwest',WI:'Midwest',IA:'Midwest',KS:'Midwest',MN:'Midwest',MO:'Midwest',NE:'Midwest',ND:'Midwest',SD:'Midwest',
+  DE:'South',FL:'South',GA:'South',MD:'South',NC:'South',SC:'South',VA:'South',DC:'South',WV:'South',AL:'South',KY:'South',MS:'South',TN:'South',AR:'South',LA:'South',OK:'South',TX:'South',
+  AZ:'West',CO:'West',ID:'West',MT:'West',NV:'West',NM:'West',UT:'West',WY:'West',AK:'West',CA:'West',HI:'West',OR:'West',WA:'West'};
+function regionOf(stt){if(!stt)return '';const k=String(stt).trim().toUpperCase();return REGION[k]||REGION[k.slice(0,2)]||'Other';}
+function groupKey(r,dim){return dim==='type'?(r.p.type||'—'):dim==='region'?(regionOf(r.p.stt)||'—'):(r.p.stt||'—');}
+// blended benchmark metrics per group, over each practice's trailing 12 months
+const BENCH=[
+  {k:'netPerDay',label:'Net / Day',fmt:'money',num:'netP',den:'days'},
+  {k:'collRatio',label:'Coll %',fmt:'pct',num:'netC',den:'netP',scale:100},
+  {k:'adjRate',label:'Adj Rate',fmt:'pct',num:'adj',den:'grossP',scale:100},
+  {k:'newPatPct',label:'% New',fmt:'pct',num:'newPat',den:'totPat',scale:100},
+  {k:'hygPct',label:'Hygiene %',fmt:'pct',num:'hyg',den:'grossP',scale:100},
+  {k:'netPerPat',label:'Net / Patient',fmt:'money',num:'netP',den:'totPat'}];
+function benchmarkGroups(rows,dim){
+  const g={};
+  rows.forEach(r=>{if(!r.t12)return;const key=groupKey(r,dim);const b=g[key]||(g[key]={key,n:0,sums:{}});b.n++;
+    ['netP','netC','grossP','adj','totPat','newPat','days','hyg'].forEach(k=>b.sums[k]=(b.sums[k]||0)+(r.t12[k]||0));});
+  return Object.values(g).map(b=>{const o={key:b.key,n:b.n};
+    BENCH.forEach(m=>{const den=b.sums[m.den]||0;o[m.k]=den?b.sums[m.num]/den*(m.scale||1):null;});
+    o.netP=b.sums.netP;return o;}).sort((a,b)=>b.netP-a.netP);
+}
+// cohort seasonality: average calendar-month index (100 = the cohort's typical month) for one metric
+const SEAS_METRICS=[{k:'grossP',label:'Gross Production'},{k:'netP',label:'Net Production'},{k:'netC',label:'Net Collections'},{k:'adj',label:'Production Adjustments'},{k:'totPat',label:'Total Patients'},{k:'newPat',label:'New Patients'},{k:'appts',label:'Appointments'}];
+function seasonalIndex(rows,metric){
+  const hist=state.portfolioHist||{};
+  const sum=new Array(12).fill(0),cnt=new Array(12).fill(0);let practices=0;
+  rows.forEach(r=>{const h=hist[r.p.id];if(!h)return;
+    const vals=Object.keys(h).map(ym=>({m:+ym.split('-')[1]-1,v:h[ym][metric]||0})).filter(x=>x.v>0);
+    if(vals.length<6)return;                                   // need enough months to be meaningful
+    const avg=vals.reduce((a,x)=>a+x.v,0)/vals.length;if(!avg)return;
+    const byM={};vals.forEach(x=>{(byM[x.m]||(byM[x.m]=[])).push(x.v);});
+    Object.keys(byM).forEach(m=>{const arr=byM[m],ma=arr.reduce((a,v)=>a+v,0)/arr.length;sum[m]+=ma/avg*100;cnt[m]++;});
+    practices++;});
+  const idx=sum.map((s,m)=>cnt[m]?s/cnt[m]:null);
+  return{idx,practices};
 }
 function renderPortfolio(){
   const el=document.getElementById('portfolio'),pf=state.pf,all=state.portfolioRows||[];
@@ -831,6 +927,7 @@ function renderPortfolio(){
       <span class="homecount" id="pfCount"></span>
     </div>
     <div class="kgrid" id="pfSummary" style="margin-top:14px"></div>
+    <div id="pfInsights"></div>
     <div class="panel"><h3>Practice rankings</h3><div class="tw" id="pfTable"></div>
       <div class="note">Each practice's latest reported month (multi-location summed). “Percentile” ranks each practice on the sorted column against the current peer group (the filtered set). Click a column to sort, a row to open.</div></div>`;
   const rerun=()=>renderPortfolioBody();
@@ -868,6 +965,45 @@ function renderPortfolioBody(){
   document.getElementById('pfTable').innerHTML=`<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
   document.querySelectorAll('#pfTable th.sortable').forEach(t=>t.onclick=()=>{const k=t.dataset.k;if(pf.sortKey===k)pf.sortDir=pf.sortDir==='desc'?'asc':'desc';else{pf.sortKey=k;pf.sortDir='desc';}renderPortfolioBody();});
   document.querySelectorAll('#pfTable tr.prow').forEach(t=>t.onclick=()=>pick(t.dataset.id));
+  renderPfInsights(withData);
+}
+function renderPfInsights(cohort){
+  const host=document.getElementById('pfInsights');if(!host)return;
+  const dim=state.pf.bdim||'stt',groups=benchmarkGroups(cohort,dim);
+  const dimLabel={type:'Specialty',stt:'State',region:'Region'}[dim]||'Group';
+  const bHead=`<tr><th>${dimLabel}</th><th>#</th>${BENCH.map(m=>`<th>${m.label}</th>`).join('')}</tr>`;
+  const bBody=groups.map(g=>`<tr><td>${esc(g.key)}</td><td>${g.n}</td>${BENCH.map(m=>`<td>${m.k==='collRatio'?colVal('collRatio',g[m.k]):fmt(g[m.k],m.fmt)}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${BENCH.length+2}" class="muted">No data in this filter.</td></tr>`;
+  const metric=state.pf.smetric||'grossP',si=seasonalIndex(cohort,metric),idx=si.idx;
+  // peer reference: the whole book's seasonal pattern (only meaningful when a filter narrows the cohort)
+  const filterActive=!!(state.pf.q||state.pf.type||state.pf.stt||state.pf.renewal);
+  const book=filterActive?seasonalIndex((state.portfolioRows||[]).filter(r=>r.ym),metric).idx:null;
+  const all=idx.concat(book||[]).filter(v=>v!=null),mn=all.length?Math.min(...all):0,mx=all.length?Math.max(...all):0;
+  const H=86,scale=v=>(v==null||mx<=mn)?0:Math.max(2,(v-mn)/(mx-mn)*H);
+  let hi=-1,lo=-1;idx.forEach((v,m)=>{if(v==null)return;if(hi<0||v>idx[hi])hi=m;if(lo<0||v<idx[lo])lo=m;});
+  const bars=idx.map((v,m)=>{const bh=scale(v),bk=book?book[m]:null,bkh=scale(bk);
+    const col=v==null?'var(--line,#e6e9ef)':(v>=105?'var(--pos,#2f9e44)':(v<=95?'var(--neg,#a32d2d)':'var(--brand,#3f8fd8)'));
+    const vsPeer=(v!=null&&bk!=null)?(v-bk):null;
+    const lab=v==null?'—':Math.round(v)+(vsPeer!=null?`<span style="color:${vsPeer>=0?'var(--pos,#2f9e44)':'var(--neg,#a32d2d)'};font-size:9px"> ${vsPeer>=0?'+':''}${Math.round(vsPeer)}</span>`:'');
+    const marker=bk!=null?`<div title="whole book" style="position:absolute;left:-18%;right:-18%;bottom:${bkh}px;border-top:2px dashed var(--muted,#8a929c);opacity:.75"></div>`:'';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="font-size:10px;color:var(--muted,#5b6472)">${lab}</div><div style="position:relative;width:62%;height:${H}px;display:flex;align-items:flex-end">${marker}<div style="width:100%;height:${bh}px;background:${col};border-radius:3px 3px 0 0"></div></div><div style="font-size:10px;color:var(--muted,#5b6472)">${MONTHS[m]}</div></div>`;}).join('');
+  const sm=SEAS_METRICS.find(s=>s.k===metric);
+  const seasNote=(hi>=0&&lo>=0&&si.practices>=3)?
+    `Across ${si.practices} practices, ${sm.label.toLowerCase()} tends to peak in <b>${MONTHS[hi]}</b> and run lowest in <b>${MONTHS[lo]}</b>. 100 = a typical month for each practice; green bars run seasonally strong.${book?' Dashed line = the whole book; the small +/- is this group vs. the book that month.':''}`
+    :'Not enough history in this filter to show a reliable seasonal pattern.';
+  host.innerHTML=`
+    <div class="panel"><h3>Benchmarks by group</h3>
+      <div style="margin:2px 0 10px">Group by
+        <select id="pfDim">${[['type','Specialty'],['stt','State'],['region','Region']].map(o=>`<option value="${o[0]}"${dim===o[0]?' selected':''}>${o[1]}</option>`).join('')}</select>
+        <span class="muted"> · blended across each group's practices over their trailing 12 months (respects the filters above)</span></div>
+      <div class="tw"><table><thead>${bHead}</thead><tbody>${bBody}</tbody></table></div></div>
+    <div class="panel"><h3>Seasonality${filterActive?' vs. the whole book':''}</h3>
+      <div style="margin:2px 0 10px">Metric
+        <select id="pfSeas">${SEAS_METRICS.map(s=>`<option value="${s.k}"${metric===s.k?' selected':''}>${s.label}</option>`).join('')}</select>
+        <span class="muted"> · ${filterActive?'current filter vs. dashed = whole book':'whole book (filter to a specialty or state to compare a peer group)'}</span></div>
+      <div style="display:flex;align-items:flex-end;gap:6px;padding:6px 2px 0">${bars}</div>
+      <div class="note">${seasNote}</div></div>`;
+  const d=document.getElementById('pfDim');if(d)d.onchange=e=>{state.pf.bdim=e.target.value;renderPortfolioBody();};
+  const se=document.getElementById('pfSeas');if(se)se.onchange=e=>{state.pf.smetric=e.target.value;renderPortfolioBody();};
 }
 
 /* ---------- login (web/deployed mode only) ---------- */
