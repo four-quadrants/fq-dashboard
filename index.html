@@ -211,7 +211,7 @@ const T_PRACTICES='tblpbRJJH83aVrNW0', T_MONTHLY='tblqHbZTnY6WG8Bp8', T_FORECAST
 const DR={name:'fldFQ9utJUs1i2cjb',slot:'fldwbKiIfMg691cxa',role:'fldhlpqaHellsHnzf',link:'fldqX2hRgsD63wp1D',ended:'fldxSnUuARGXuIm7V',start:'fldQdubWKbVGhlnjL'};
 const LIST_TOOL='mcp__22f54f58-5001-47b6-ac40-cde6185479e4__list_records_for_table';
 
-const PR={name:'fldAFjgH9h49Fem9x',uid:'fldDIczZcGe7994dp',type:'fldExbHIOMSmNuQ0o',state:'fldno1MWgUylqz81C',renewal:'fldUIyId0U9TNzQQM',dataStatus:'fldWiJ8Hx1cLPc9rQ',trackOnly:'fld8ghrOGS9UHq0mT',latestData:'fldJUgl9j19XAKBJr',reportStatus:'fldzIv29NmW3SkJfV',reportDue:'fldDO0DQbwPi0dWZx',missing:'fldAsDcCvj9buY2kb',logo:'fldrTTzJPcCnGaTmu'};
+const PR={name:'fldAFjgH9h49Fem9x',uid:'fldDIczZcGe7994dp',type:'fldExbHIOMSmNuQ0o',state:'fldno1MWgUylqz81C',renewal:'fldUIyId0U9TNzQQM',dataStatus:'fldWiJ8Hx1cLPc9rQ',trackOnly:'fld8ghrOGS9UHq0mT',latestData:'fldJUgl9j19XAKBJr',reportStatus:'fldzIv29NmW3SkJfV',reportDue:'fldDO0DQbwPi0dWZx',missing:'fldAsDcCvj9buY2kb',logo:'fldrTTzJPcCnGaTmu',owner:'fldrUFlEllGgKOurv'};
 const MD={month:'fldDJyaIgXrGYxYel',loc:'fld6AyyVv2GvAh0Eh',link:'fld8JIScPigMRgbo7',
   grossP:'fldOTIraAKAFUleOD',adj:'fldOjlOk0vU2q8bXV',netP:'flduzI96lzLTBfWHB',grossC:'fldSe2ChcitVDOF8C',netC:'fld7vZYNHcrf9EiLx',
   d1p:'fldMTK0Xh3wageOf9',d1d:'flddVZLB1It45H8zA',d2p:'fldTc1hp2DdupEgpo',d2d:'fldLjdYgDDWp547g4',
@@ -300,7 +300,7 @@ async function apiRecords(resource,practice){
     if(!r.ok){let m='data '+r.status;try{m=(await r.json()).error||m;}catch(e){}throw new Error(m);}
     return (await r.json()).records||[];
   }
-  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo],sort:[{fieldId:PR.name,direction:'asc'}]});
+  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo,PR.owner],sort:[{fieldId:PR.name,direction:'asc'}]});
   if(resource==='monthly')return atList(T_MONTHLY,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[MD.link,[practice.id]]}]},sort:[{fieldId:MD.month,direction:'desc'}]});
   if(resource==='forecasts')return atList(T_FORECASTS,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[FC.link,[practice.id]]}]},sort:[{fieldId:FC.month,direction:'asc'}]}).catch(()=>[]);
   if(resource==='doctors')return atList(T_DOCTORS,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[DR.link,[practice.id]]}]},fieldIds:[DR.name,DR.slot,DR.role,DR.ended,DR.start],sort:[{fieldId:DR.slot,direction:'asc'}]}).catch(()=>[]);
@@ -321,6 +321,7 @@ async function loadPractices(){
   const recs=await apiRecords('practices');
   state.practices=recs.map(r=>{const c=r.cellValuesByFieldId;const ld=c[PR.latestData];
     return{id:r.id,name:c[PR.name]||'(unnamed)',uid:c[PR.uid]||'',type:sel(c[PR.type]),stt:sel(c[PR.state]),
+    owner:c[PR.owner]||'',
     renewal:sel(c[PR.renewal]),dataStatus:c[PR.dataStatus]||'',trackOnly:!!c[PR.trackOnly],
     latestMonth:(typeof ld==='string'?ld:(Array.isArray(ld)&&ld.length?ld[0]:'')||'').slice(0,7),
     reportStatus:c[PR.reportStatus]||'',reportDue:num(c[PR.reportDue]),
@@ -777,9 +778,9 @@ function setupPicker(){
   const inp=document.getElementById('picker'),menu=document.getElementById('menu');
   function render(q){
     const nq=norm(q);
-    const list=state.practices.filter(p=>!nq||norm(p.name).includes(nq)||norm(p.uid).includes(nq)||norm(p.type).includes(nq)||norm(p.stt).includes(nq));
+    const list=state.practices.filter(p=>!nq||norm(p.name).includes(nq)||norm(p.uid).includes(nq)||norm(p.type).includes(nq)||norm(p.stt).includes(nq)||norm(p.owner).includes(nq));
     const head=`<div class="cnt">${list.length} of ${state.practices.length} practices</div>`;
-    menu.innerHTML=head+(list.map(p=>`<div class="opt${state.current&&state.current.id===p.id?' active':''}" data-id="${p.id}"><span class="nm">${esc(p.name)}</span><span class="meta">${esc(p.type||'')}${p.stt?' · '+esc(p.stt):''}</span></div>`).join('')||'<div class="opt muted">No matches</div>');
+    menu.innerHTML=head+(list.map(p=>`<div class="opt${state.current&&state.current.id===p.id?' active':''}" data-id="${p.id}"><span class="nm">${esc(p.name)}</span><span class="meta">${esc(p.type||'')}${p.stt?' · '+esc(p.stt):''}${p.owner?' · '+esc(p.owner):''}</span></div>`).join('')||'<div class="opt muted">No matches</div>');
     menu.querySelectorAll('.opt[data-id]').forEach(o=>o.onclick=()=>pick(o.dataset.id));
   }
   function open(){render(inp.value===state.currentName?'':inp.value);menu.classList.add('open');}
@@ -826,7 +827,7 @@ function filteredHome(){const hf=state.hf,nq=norm(hf.q);
     if(hf.type&&p.type!==hf.type)return false;
     if(hf.stt&&p.stt!==hf.stt)return false;
     if(hf.attn&&!needsAttention(p))return false;
-    if(nq&&!(norm(p.name).includes(nq)||norm(p.uid).includes(nq)||norm(p.type).includes(nq)||norm(p.stt).includes(nq)))return false;
+    if(nq&&!(norm(p.name).includes(nq)||norm(p.uid).includes(nq)||norm(p.type).includes(nq)||norm(p.stt).includes(nq)||norm(p.owner).includes(nq)))return false;
     return true;});}
 function cardHTML(p){
   const behind=monthsBehind(p),rs=p.reportStatus||'';
@@ -837,7 +838,7 @@ function cardHTML(p){
   if(p.trackOnly)badges.push('<span class="b">Track-only</span>');
   return `<div class="card" data-id="${p.id}">
     <div class="logowrap"><img src="${p.logo||LOGO4Q}" alt="" loading="lazy" onerror="this.onerror=null;this.src=LOGO4Q"></div>
-    <div class="cbody"><div class="cname">${esc(p.name)}</div><div class="cmeta">${esc(p.type||'')}${p.stt?' · '+esc(p.stt):''}</div></div>
+    <div class="cbody"><div class="cname">${esc(p.name)}</div><div class="cmeta">${esc(p.type||'')}${p.stt?' · '+esc(p.stt):''}${p.owner?' · '+esc(p.owner):''}</div></div>
     <div class="cbadges">${badges.join('')}</div></div>`;}
 function bindCards(){document.querySelectorAll('#home .card[data-id]').forEach(c=>c.onclick=()=>pick(c.dataset.id));}
 function renderHomeCards(){const list=filteredHome();
@@ -859,7 +860,7 @@ function renderHome(){
         <button class="pfbtn" id="toPortfolio">View portfolio →</button></div>
     </div>
     <div class="homebar">
-      <input id="homeSearch" type="text" placeholder="Search practices…" value="${esc(hf.q)}">
+      <input id="homeSearch" type="text" placeholder="Search practices or owner…" value="${esc(hf.q)}">
       <select id="fType"><option value="">All types</option>${types.map(t=>`<option value="${esc(t)}"${hf.type===t?' selected':''}>${esc(t)}</option>`).join('')}</select>
       <select id="fState"><option value="">All states</option>${states.map(s=>`<option value="${esc(s)}"${hf.stt===s?' selected':''}>${esc(s)}</option>`).join('')}</select>
       <label class="chk"><input type="checkbox" id="fAttn" ${hf.attn?'checked':''}> Needs attention</label>
