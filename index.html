@@ -74,6 +74,10 @@ body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSys
 .kpi .d .dl{color:var(--ink-soft);font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}
 .kpi .d .dv{font-weight:700}
 .up{color:var(--pos)} .down{color:var(--neg)} .flat{color:var(--ink-soft)}
+.hl-hi{background:rgba(47,158,68,.14);color:var(--pos);font-weight:700}
+.hl-lo{background:rgba(163,45,45,.13);color:var(--neg);font-weight:700}
+.hl-tag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-left:6px;padding:1px 6px;border-radius:999px;vertical-align:middle;color:#fff}
+.hl-tag.hi{background:var(--pos)} .hl-tag.lo{background:var(--neg)}
 
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
 .panel h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);border-left:3px solid var(--amber);padding-left:8px}
@@ -610,17 +614,26 @@ function renderInsights(){
   const el=document.getElementById('v-insights'),ms=months();
   if(ms.length<3){el.innerHTML='<div class="panel"><div class="err">Not enough history yet for insights (need a few months of data).</div></div>';return;}
   const hlKeys=metricKeys().filter(k=>nzA(ms,k));
+  const ymIdx=y=>{const a=String(y).split('-');return (+a[0])*12+(+a[1])-1;};
+  const latestIdx=ymIdx(ms[ms.length-1].ym);
+  const isRecent=ym=>{const d=latestIdx-ymIdx(ym);return d>=0&&d<=5;}; // record set within trailing 6 months (latest + prior 5)
+  let anyFlag=false;
   const rows=hlKeys.map(k=>{
     const vals=ms.map(m=>({ym:m.ym,v:mval(m,k)})).filter(x=>x.v!=null&&x.v!==0);
     if(!vals.length)return '';
     let best=vals[0],worst=vals[0];vals.forEach(x=>{if(x.v>best.v)best=x;if(x.v<worst.v)worst=x;});
-    return `<tr><td>${M[k].label}</td><td>${colVal(k,best.v)}</td><td class="muted">${fmtMonth(best.ym)}</td><td>${colVal(k,worst.v)}</td><td class="muted">${fmtMonth(worst.ym)}</td></tr>`;}).join('');
+    const hiR=isRecent(best.ym),loR=isRecent(worst.ym);if(hiR||loR)anyFlag=true;
+    const hiTag=hiR?' <span class="hl-tag hi">6-mo high</span>':'';
+    const loTag=loR?' <span class="hl-tag lo">6-mo low</span>':'';
+    return `<tr><td>${M[k].label}</td>`
+      +`<td class="${hiR?'hl-hi':''}">${colVal(k,best.v)}</td><td class="${hiR?'hl-hi':'muted'}">${fmtMonth(best.ym)}${hiTag}</td>`
+      +`<td class="${loR?'hl-lo':''}">${colVal(k,worst.v)}</td><td class="${loR?'hl-lo':'muted'}">${fmtMonth(worst.ym)}${loTag}</td></tr>`;}).join('');
   const seasKeys=metricKeys().filter(k=>nzA(ms,k));
   if(!seasKeys.includes(state.seasMetric))state.seasMetric=seasKeys.includes('netP')?'netP':seasKeys[0];
   el.innerHTML=`
     <div class="panel"><h3>Highlights &amp; lowlights — all-time</h3>
       <div class="tw"><table><thead><tr><th>Metric</th><th>Best month</th><th>When</th><th>Weakest month</th><th>When</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="note">Best and weakest reported months across the full history (${fmtMonth(ms[0].ym)}–${fmtMonth(ms[ms.length-1].ym)}). Months with no data are ignored.</div></div>
+      <div class="note">Best and weakest reported months across the full history (${fmtMonth(ms[0].ym)}–${fmtMonth(ms[ms.length-1].ym)}). Months with no data are ignored. <span class="hl-tag hi">6-mo high</span> means the all-time best was set within the last 6 months; <span class="hl-tag lo">6-mo low</span> means the all-time low was set within the last 6 months.${anyFlag?'':' <b>Nothing flagged this window</b> — no all-time record was set in the last 6 months.'}</div></div>
     <div class="panel"><h3>Seasonality — average by calendar month</h3>
       <div class="controls"><label>Metric <select id="seasSel">${seasKeys.map(k=>`<option value="${k}"${state.seasMetric===k?' selected':''}>${M[k].label}</option>`).join('')}</select></label></div>
       <div class="chartbox"><canvas id="seasChart"></canvas></div>
