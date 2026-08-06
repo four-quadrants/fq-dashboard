@@ -623,8 +623,8 @@ function renderInsights(){
     if(!vals.length)return '';
     let best=vals[0],worst=vals[0];vals.forEach(x=>{if(x.v>best.v)best=x;if(x.v<worst.v)worst=x;});
     const hiR=isRecent(best.ym),loR=isRecent(worst.ym);if(hiR||loR)anyFlag=true;
-    const hiTag=hiR?' <span class="hl-tag hi">6-mo high</span>':'';
-    const loTag=loR?' <span class="hl-tag lo">6-mo low</span>':'';
+    const hiTag=hiR?' <span class="hl-tag hi">Record high</span>':'';
+    const loTag=loR?' <span class="hl-tag lo">Record low</span>':'';
     return `<tr><td>${M[k].label}</td>`
       +`<td class="${hiR?'hl-hi':''}">${colVal(k,best.v)}</td><td class="${hiR?'hl-hi':'muted'}">${fmtMonth(best.ym)}${hiTag}</td>`
       +`<td class="${loR?'hl-lo':''}">${colVal(k,worst.v)}</td><td class="${loR?'hl-lo':'muted'}">${fmtMonth(worst.ym)}${loTag}</td></tr>`;}).join('');
@@ -633,7 +633,7 @@ function renderInsights(){
   el.innerHTML=`
     <div class="panel"><h3>Highlights &amp; lowlights — all-time</h3>
       <div class="tw"><table><thead><tr><th>Metric</th><th>Best month</th><th>When</th><th>Weakest month</th><th>When</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="note">Best and weakest reported months across the full history (${fmtMonth(ms[0].ym)}–${fmtMonth(ms[ms.length-1].ym)}). Months with no data are ignored. <span class="hl-tag hi">6-mo high</span> means the all-time best was set within the last 6 months; <span class="hl-tag lo">6-mo low</span> means the all-time low was set within the last 6 months.${anyFlag?'':' <b>Nothing flagged this window</b> — no all-time record was set in the last 6 months.'}</div></div>
+      <div class="note">Best and weakest reported months across the full history (${fmtMonth(ms[0].ym)}–${fmtMonth(ms[ms.length-1].ym)}). Months with no data are ignored. <span class="hl-tag hi">Record high</span> = the all-time best, and it was set within the last 6 months; <span class="hl-tag lo">Record low</span> = the all-time low, set within the last 6 months.${anyFlag?'':' <b>Nothing flagged this window</b> — no all-time record was set in the last 6 months.'}</div></div>
     <div class="panel"><h3>Seasonality — average by calendar month</h3>
       <div class="controls"><label>Metric <select id="seasSel">${seasKeys.map(k=>`<option value="${k}"${state.seasMetric===k?' selected':''}>${M[k].label}</option>`).join('')}</select></label></div>
       <div class="chartbox"><canvas id="seasChart"></canvas></div>
