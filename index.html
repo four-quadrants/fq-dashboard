@@ -113,6 +113,23 @@ tbody tr:hover{background:var(--panel-2)}
 .hero .stat.attn{cursor:pointer}
 .hero .stat.attn:hover{border-color:var(--amber)}
 .hero .stat.attn b{color:var(--neg)}
+.hero .stat.hl{cursor:pointer}
+.hero .stat.hl:hover{border-color:var(--amber)}
+.hero .stat.hl b{color:var(--pos)}
+.hero .stat.hl.none{cursor:default;opacity:.7}
+.hero .stat.hl.none:hover{border-color:var(--line)}
+.hero .stat.hl.none b{color:var(--ink)}
+.hlback{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px;overflow:auto}
+.hlmodal{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:760px;width:100%;padding:20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.hlmodal h3{margin:0 0 6px;font-size:15px;color:var(--ink)}
+.hlmodal .hx{float:right;cursor:pointer;border:none;background:none;font-size:22px;line-height:1;color:var(--ink-soft)}
+.hlrow{display:flex;gap:14px;align-items:flex-start;padding:11px 2px;border-top:1px solid var(--line);cursor:pointer}
+.hlrow:hover{background:rgba(127,127,127,.06)}
+.hlrow .hlname{font-weight:700;min-width:180px;color:var(--navy)}
+.hlchips{display:flex;flex-wrap:wrap;gap:6px}
+.hlchip{font-size:11.5px;border-radius:999px;padding:2px 9px;border:1px solid var(--line);white-space:nowrap}
+.hlchip.good{background:rgba(47,158,68,.13);color:var(--pos);border-color:rgba(47,158,68,.4)}
+.hlchip.bad{background:rgba(163,45,45,.12);color:var(--neg);border-color:rgba(163,45,45,.4)}
 .pfbtn{border:1px solid var(--line);background:transparent;color:var(--ink-soft);border-radius:999px;padding:5px 13px;font-size:12.5px;font-weight:600;cursor:pointer}
 .pfbtn:hover{border-color:var(--blue);color:var(--ink)}
 th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
@@ -838,6 +855,7 @@ function renderHome(){
       <p>Open a practice to dive into its performance, trends, and forecast — or scan the book for anything that needs attention.</p>
       <div class="stats"><span class="stat"><b>${state.practices.length}</b> practices</span>
         <span class="stat attn" id="attnStat" title="More than a month behind on data, an overdue report, or incomplete data — not just waiting on last month."><b>${attn}</b> need attention</span>
+        <span class="stat hl none" id="hlStat" title="Loading records…">Highs / Lows…</span>
         <button class="pfbtn" id="toPortfolio">View portfolio →</button></div>
     </div>
     <div class="homebar">
@@ -854,6 +872,7 @@ function renderHome(){
   document.getElementById('fAttn').onchange=e=>{hf.attn=e.target.checked;renderHomeCards();};
   const as=document.getElementById('attnStat');if(as)as.onclick=()=>{hf.attn=!hf.attn;renderHome();};
   const tp=document.getElementById('toPortfolio');if(tp)tp.onclick=openPortfolio;
+  ensureHighsLows();
   bindCards();}
 
 /* ---------- portfolio ---------- */
@@ -887,6 +906,72 @@ async function loadPortfolio(){
     ['netP','netC','grossP','adj','totPat','newPat','days','hyg','appts','newStarts'].forEach(k=>t12[k]=last12.reduce((a,m)=>a+(m[k]||0),0));
     return{p,ym:b.ym,netP:b.netP,netC:b.netC,grossP:b.grossP,adj:b.adj,totPat:b.totPat,newPat:b.newPat,days:b.days,hyg:b.hyg,appts:b.appts,newStarts:b.newStarts,
       collRatio:b.netP?b.netC/b.netP*100:null,netPerDay:b.days?b.netP/b.days:null,netPerPat:b.totPat?b.netP/b.totPat:null,newPatPct:b.totPat?b.newPat/b.totPat*100:null,t12};});
+}
+/* ---------- home Highs & Lows: all-time records set in the latest reported month ---------- */
+const HL_MIN_MONTHS=12;
+const HL_METRICS=[
+  {k:'grossP',label:'Gross Production',fmt:'money',inverse:false},
+  {k:'netP',label:'Net Production',fmt:'money',inverse:false},
+  {k:'netC',label:'Net Collections',fmt:'money',inverse:false},
+  {k:'adj',label:'Adjustments',fmt:'money',inverse:true},          // inverse: an all-time LOW is the good news
+  {k:'__pat',label:'Patients',fmt:'int',inverse:false},            // Patients, or Appointments for ortho
+  {k:'newPat',label:'New Patients',fmt:'int',inverse:false}];
+function computeHighsLows(){
+  const hist=state.portfolioHist||{},expNum=ymNum(expectedDataYm()),out=[];
+  state.practices.forEach(p=>{
+    const h=hist[p.id];if(!h)return;
+    const yms=Object.keys(h).sort();
+    if(yms.length<HL_MIN_MONTHS)return;                            // 'all-time' needs real history
+    const latestYm=yms[yms.length-1],behind=expNum-ymNum(latestYm);
+    if(behind<0||behind>1)return;                                  // only a *freshly* reported month counts
+    let sumTot=0,sumApp=0;yms.forEach(y=>{sumTot+=h[y].totPat||0;sumApp+=h[y].appts||0;});
+    const patKey=(sumTot===0&&sumApp>0)?'appts':'totPat',patLabel=patKey==='appts'?'Appointments':'Patients';
+    const recs=[];
+    HL_METRICS.forEach(m=>{
+      const key=m.k==='__pat'?patKey:m.k,label=m.k==='__pat'?patLabel:m.label;
+      const cur=h[latestYm][key];if(!(cur>0))return;               // metric must be reported this month
+      const prior=yms.slice(0,-1).map(y=>h[y][key]).filter(v=>v>0);
+      if(!prior.length)return;
+      const pmax=Math.max(...prior),pmin=Math.min(...prior);
+      let dir=null;if(cur>pmax)dir='high';else if(cur<pmin)dir='low';
+      if(!dir)return;
+      recs.push({label,fmt:m.fmt,dir,good:m.inverse?(dir==='low'):(dir==='high'),value:cur});
+    });
+    if(recs.length)out.push({p,ym:latestYm,recs});
+  });
+  out.sort((a,b)=>{const ag=a.recs.some(r=>r.good),bg=b.recs.some(r=>r.good);if(ag!==bg)return ag?-1:1;return b.recs.length-a.recs.length;});
+  return out;
+}
+async function ensureHighsLows(){
+  const chip=document.getElementById('hlStat');if(!chip)return;
+  try{
+    if(!state.portfolioRows)await loadPortfolio();
+    state.hlRecords=computeHighsLows();
+    const n=state.hlRecords.length;
+    if(n){chip.classList.remove('none');chip.innerHTML='<b>'+n+'</b> record'+(n===1?'':'s')+' this month';
+      chip.title='Practices that set an all-time high or low in their most recent reported month. Click to view.';chip.onclick=openHLModal;}
+    else{chip.classList.add('none');chip.innerHTML='<b>0</b> records this month';
+      chip.title='No practice set an all-time record in its latest reported month.';chip.onclick=null;}
+  }catch(e){chip.classList.add('none');chip.innerHTML='Highs / Lows';chip.title='Could not load record data.';chip.onclick=null;}
+}
+function openHLModal(){
+  const recs=state.hlRecords||[];
+  const rows=recs.map(r=>{
+    const chips=r.recs.map(x=>`<span class="hlchip ${x.good?'good':'bad'}">${esc(x.label)} ${x.dir==='high'?'&#9650;':'&#9660;'} ${fmt(x.value,x.fmt)}</span>`).join('');
+    return `<div class="hlrow" data-id="${r.p.id}"><div class="hlname">${esc(r.p.name)}<div class="muted" style="font-weight:400;font-size:11.5px">${esc(r.p.type||'')}${r.p.stt?' &middot; '+esc(r.p.stt):''} &middot; ${fmtMonth(r.ym)}</div></div><div class="hlchips">${chips}</div></div>`;
+  }).join('')||'<div class="note">No practices set an all-time record in their latest reported month.</div>';
+  const back=document.createElement('div');back.className='hlback';
+  back.innerHTML=`<div class="hlmodal"><button class="hx" aria-label="Close">&times;</button>
+    <h3>Highs &amp; Lows &mdash; records set this month</h3>
+    <div class="note">Practices whose most recent reported month set an all-time high or low. <span style="color:var(--pos)">Green</span> = a good record (a high in production/patients, or a new low in adjustments); <span style="color:var(--neg)">red</span> = a concerning record (a production/patient low, or an adjustments high). Needs at least 12 months of history.</div>
+    ${rows}</div>`;
+  document.body.appendChild(back);
+  const close=()=>{back.remove();document.removeEventListener('keydown',onKey);};
+  function onKey(e){if(e.key==='Escape')close();}
+  back.querySelector('.hx').onclick=close;
+  back.onclick=e=>{if(e.target===back)close();};
+  back.querySelectorAll('.hlrow[data-id]').forEach(el=>el.onclick=()=>{close();pick(el.dataset.id);});
+  document.addEventListener('keydown',onKey);
 }
 // US Census region from 2-letter state code (used for the "Region" grouping)
 const REGION={CT:'Northeast',ME:'Northeast',MA:'Northeast',NH:'Northeast',RI:'Northeast',VT:'Northeast',NJ:'Northeast',NY:'Northeast',PA:'Northeast',
