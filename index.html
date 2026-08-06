@@ -315,6 +315,9 @@ async function apiRecords(resource,practice){
 const num=v=>typeof v==='number'?v:(v==null?0:(parseFloat(String(v).replace(/[^0-9.\-]/g,''))||0));
 const sel=v=>v&&v.name?v.name:(typeof v==='string'?v:'');
 const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+// COVID year excluded from historical analysis (best/worst + seasonality). Trends/recent metrics keep it.
+const EXCL_YEARS=['2020'];
+const notCovid=ym=>EXCL_YEARS.indexOf(String(ym).slice(0,4))<0;
 function logoUrl(v){if(!Array.isArray(v)||!v.length)return '';const a=v[0];return (a.thumbnails&&a.thumbnails.large&&a.thumbnails.large.url)||a.url||'';}
 
 async function loadPractices(){
@@ -637,21 +640,23 @@ function renderInsights(){
   const isRecent=ym=>{const d=latestIdx-ymIdx(ym);return d>=0&&d<=5;}; // record set within trailing 6 months (latest + prior 5)
   let anyFlag=false;
   const rows=hlKeys.map(k=>{
-    const vals=ms.map(m=>({ym:m.ym,v:mval(m,k)})).filter(x=>x.v!=null&&x.v!==0);
+    const vals=ms.map(m=>({ym:m.ym,v:mval(m,k)})).filter(x=>x.v!=null&&x.v!==0&&notCovid(x.ym));
     if(!vals.length)return '';
-    let best=vals[0],worst=vals[0];vals.forEach(x=>{if(x.v>best.v)best=x;if(x.v<worst.v)worst=x;});
+    const inv=(k==='adj'||k==='adjPct');                 // adjustments: lower is better, so a HIGH is the bad record
+    let hi=vals[0],lo=vals[0];vals.forEach(x=>{if(x.v>hi.v)hi=x;if(x.v<lo.v)lo=x;});
+    const best=inv?lo:hi, worst=inv?hi:lo, bestIsMax=!inv;   // "best" column = most favorable month
     const hiR=isRecent(best.ym),loR=isRecent(worst.ym);if(hiR||loR)anyFlag=true;
-    const hiTag=hiR?' <span class="hl-tag hi">Record high</span>':'';
-    const loTag=loR?' <span class="hl-tag lo">Record low</span>':'';
+    const bestTag=hiR?` <span class="hl-tag hi">${bestIsMax?'Record high':'Record low'}</span>`:'';
+    const worstTag=loR?` <span class="hl-tag lo">${bestIsMax?'Record low':'Record high'}</span>`:'';
     return `<tr><td>${M[k].label}</td>`
-      +`<td class="${hiR?'hl-hi':''}">${colVal(k,best.v)}</td><td class="${hiR?'hl-hi':'muted'}">${fmtMonth(best.ym)}${hiTag}</td>`
-      +`<td class="${loR?'hl-lo':''}">${colVal(k,worst.v)}</td><td class="${loR?'hl-lo':'muted'}">${fmtMonth(worst.ym)}${loTag}</td></tr>`;}).join('');
+      +`<td class="${hiR?'hl-hi':''}">${colVal(k,best.v)}</td><td class="${hiR?'hl-hi':'muted'}">${fmtMonth(best.ym)}${bestTag}</td>`
+      +`<td class="${loR?'hl-lo':''}">${colVal(k,worst.v)}</td><td class="${loR?'hl-lo':'muted'}">${fmtMonth(worst.ym)}${worstTag}</td></tr>`;}).join('');
   const seasKeys=metricKeys().filter(k=>nzA(ms,k));
   if(!seasKeys.includes(state.seasMetric))state.seasMetric=seasKeys.includes('netP')?'netP':seasKeys[0];
   el.innerHTML=`
-    <div class="panel"><h3>Highlights &amp; lowlights — all-time</h3>
+    <div class="panel"><h3>Highlights &amp; lowlights — all-time (2020 excluded)</h3>
       <div class="tw"><table><thead><tr><th>Metric</th><th>Best month</th><th>When</th><th>Weakest month</th><th>When</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="note">Best and weakest reported months across the full history (${fmtMonth(ms[0].ym)}–${fmtMonth(ms[ms.length-1].ym)}). Months with no data are ignored. <span class="hl-tag hi">Record high</span> = the all-time best, and it was set within the last 6 months; <span class="hl-tag lo">Record low</span> = the all-time low, set within the last 6 months.${anyFlag?'':' <b>Nothing flagged this window</b> — no all-time record was set in the last 6 months.'}</div></div>
+      <div class="note">Best and weakest reported months across the full history, <b>excluding the 2020 COVID year</b>. Months with no data are ignored. Chips flag an all-time record set within the last 6 months (green = favorable, red = unfavorable). <b>Adjustments are inverted</b> (lower is better): the lowest month is the "best," and an all-time-high adjustment shows as a red <span class="hl-tag lo">Record high</span> in the Weakest column.${anyFlag?'':' <b>Nothing flagged this window</b> — no all-time record was set in the last 6 months.'}</div></div>
     <div class="panel"><h3>Seasonality — average by calendar month</h3>
       <div class="controls"><label>Metric <select id="seasSel">${seasKeys.map(k=>`<option value="${k}"${state.seasMetric===k?' selected':''}>${M[k].label}</option>`).join('')}</select></label></div>
       <div class="chartbox"><canvas id="seasChart"></canvas></div>
@@ -663,7 +668,7 @@ function drawSeas(){
   if(charts.seas){try{charts.seas.destroy();}catch(e){}}
   const ms=months(),k=state.seasMetric;
   const buckets=MONTHS.map(()=>[]);
-  ms.forEach(m=>{const v=mval(m,k);if(v!=null&&v!==0)buckets[+m.ym.slice(5,7)-1].push(v);});
+  ms.forEach(m=>{const v=mval(m,k);if(v!=null&&v!==0&&notCovid(m.ym))buckets[+m.ym.slice(5,7)-1].push(v);});
   const avgs=buckets.map(b=>b.length?b.reduce((a,x)=>a+x,0)/b.length:null);
   const counts=buckets.map(b=>b.length);
   const present=avgs.map((v,i)=>({v,i})).filter(x=>x.v!=null);
@@ -675,7 +680,7 @@ function drawSeas(){
     options:Object.assign(baseOpts(M[k].fmt),{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>M[k].label+' avg: '+fmt(c.parsed.y,M[k].fmt)+' · '+counts[c.dataIndex]+' yr'+(counts[c.dataIndex]===1?'':'s')}}}})});
   const strong=present.filter(x=>x.v===maxV).map(x=>MONTHS[x.i]),weak=present.filter(x=>x.v===minV).map(x=>MONTHS[x.i]);
   const yrs=Math.max(...counts);
-  document.getElementById('seasNote').innerHTML=`Average ${esc(M[k].label)} for each calendar month across up to ${yrs} year${yrs===1?'':'s'}. Strongest: <b>${strong.join(', ')}</b> · weakest: <b>${weak.join(', ')}</b>.`+(ms.length<24?' Limited history — read with caution.':'');
+  document.getElementById('seasNote').innerHTML=`Average ${esc(M[k].label)} for each calendar month across up to ${yrs} year${yrs===1?'':'s'} (2020 excluded). Strongest: <b>${strong.join(', ')}</b> · weakest: <b>${weak.join(', ')}</b>.`+(ms.length<24?' Limited history — read with caution.':'');
 }
 
 /* ---------- SWOT (rule-based) ---------- */
@@ -704,7 +709,7 @@ function generateSwot(){
   if(ctx){['netP','netC'].forEach(k=>{const r=paceRow(ctx,k),lab=M[k].label.toLowerCase();
     if(r.planYtd){const pv=(r.actYtd-r.planYtd)/r.planYtd*100;if(pv>=3)push('S',pv,`Ahead of forecast on ${lab} (+${pv.toFixed(0)}% vs plan YTD)`);else if(pv<=-3)push('T',pv,`Behind forecast on ${lab} (${pv.toFixed(0)}% vs plan YTD)`);}
     if(r.planFull){const jv=(r.proj-r.planFull)/r.planFull*100;if(jv>=5)push('O',jv,`On pace to beat the full-year ${lab} plan by ${jv.toFixed(0)}%`);else if(jv<=-5)push('T',jv,`Projected to finish ${jv.toFixed(0)}% under the full-year ${lab} plan`);}});}
-  if(ms.length>=12&&nzA(ms,'netP')){const buckets=MONTHS.map(()=>[]);ms.forEach(m=>buckets[+m.ym.slice(5,7)-1].push(m.netP));
+  if(ms.length>=12&&nzA(ms,'netP')){const buckets=MONTHS.map(()=>[]);ms.forEach(m=>{if(notCovid(m.ym))buckets[+m.ym.slice(5,7)-1].push(m.netP);});
     const avgs=buckets.map(b=>b.length?b.reduce((a,x)=>a+x,0)/b.length:null),present=avgs.map((v,i)=>({v,i})).filter(x=>x.v!=null);
     if(present.length>=6){const mx=Math.max(...present.map(x=>x.v)),mn=Math.min(...present.map(x=>x.v)),allAvg=present.reduce((a,x)=>a+x.v,0)/present.length;
       const strong=present.filter(x=>x.v===mx).map(x=>MONTHS[x.i]);
@@ -1003,7 +1008,7 @@ function seasonalIndex(rows,metric){
   const hist=state.portfolioHist||{};
   const sum=new Array(12).fill(0),cnt=new Array(12).fill(0);let practices=0;
   rows.forEach(r=>{const h=hist[r.p.id];if(!h)return;
-    const vals=Object.keys(h).map(ym=>({m:+ym.split('-')[1]-1,v:h[ym][metric]||0})).filter(x=>x.v>0);
+    const vals=Object.keys(h).filter(notCovid).map(ym=>({m:+ym.split('-')[1]-1,v:h[ym][metric]||0})).filter(x=>x.v>0);
     if(vals.length<6)return;                                   // need enough months to be meaningful
     const avg=vals.reduce((a,x)=>a+x.v,0)/vals.length;if(!avg)return;
     const byM={};vals.forEach(x=>{(byM[x.m]||(byM[x.m]=[])).push(x.v);});
