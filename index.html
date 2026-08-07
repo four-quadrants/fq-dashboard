@@ -513,13 +513,13 @@ function renderForecast(){
   const rows=kept.map(k=>{const r=rmap[k],dP=delta(r.actYtd,r.planYtd,k==='adjPct'),dJ=delta(r.proj,r.planFull,k==='adjPct');
     return `<tr><td>${M[k].label}</td><td>${fmt(r.actYtd,M[k].fmt)}</td><td>${fmt(r.planYtd,M[k].fmt)}</td><td class="${dP.cls}">${dP.txt}</td><td>${fmt(r.proj,M[k].fmt)}</td><td>${fmt(r.planFull,M[k].fmt)}</td><td class="${dJ.cls}">${dJ.txt}</td></tr>`;}).join('');
   el.innerHTML=`
-    <div class="panel"><h3>Plan vs actual — FY ${ctx.curFY} · through ${through}</h3>
+    <div class="panel"><h3>Forecast vs actual — FY ${ctx.curFY} · through ${through}</h3>
       <div class="controls"><label>Metric <select id="fcSel">${kept.map(k=>`<option value="${k}"${state.fcMetric===k?' selected':''}>${M[k].label}</option>`).join('')}</select></label></div>
       <div class="chartbox"><canvas id="fcChart"></canvas></div>
-      <div class="note">Monthly plan (dashed) vs actual (solid) across the forecast year (${span}).</div></div>
-    <div class="panel"><h3>All metrics — actual vs plan</h3>
-      <div class="tw"><table><thead><tr><th>Metric</th><th>Actual to date</th><th>Plan to date</th><th>vs Plan</th><th>Proj. year-end</th><th>FY plan</th><th>Proj vs plan</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="note">Efficiency figures are blended over the window (sum of numerator ÷ sum of denominator). “To date” only counts forecast months elapsed so far; projection = actual to date + plan for remaining months. Metrics the practice doesn't forecast are hidden.</div></div>`;
+      <div class="note">Monthly forecast (dashed) vs actual (solid) across the forecast year (${span}).</div></div>
+    <div class="panel"><h3>All metrics — actual vs forecast</h3>
+      <div class="tw"><table><thead><tr><th>Metric</th><th>Actual to date</th><th>Forecast to date</th><th>vs Forecast</th><th>Proj. year-end</th><th>FY forecast</th><th>Proj vs forecast</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="note">Efficiency figures are blended over the window (sum of numerator ÷ sum of denominator). “To date” only counts forecast months elapsed so far; projection = actual to date + forecast for remaining months. Metrics the practice doesn't forecast are hidden.</div></div>`;
   document.getElementById('fcSel').onchange=e=>{state.fcMetric=e.target.value;localStorage.setItem(LS+'_fcm',state.fcMetric);drawFcChart(ctx);};
   drawFcChart(ctx);
 }
@@ -529,7 +529,7 @@ function drawFcChart(ctx){
   const plan=ctx.fyMonths.map(ym=>mval(ctx.fcm[ym],k));
   const actual=ctx.fyMonths.map(ym=>{if(ym>ctx.latestYm)return null;const a=ctx.ms.find(m=>m.ym===ym);return a?mval(a,k):null;});
   charts.fc=new Chart(document.getElementById('fcChart'),{data:{labels,datasets:[
-    {type:'line',label:'Plan',data:plan,borderColor:'#aeb4bd',backgroundColor:'#aeb4bd',borderDash:[5,4],tension:.3,pointRadius:2,spanGaps:true},
+    {type:'line',label:'Forecast',data:plan,borderColor:'#aeb4bd',backgroundColor:'#aeb4bd',borderDash:[5,4],tension:.3,pointRadius:2,spanGaps:true},
     {type:'line',label:'Actual',data:actual,borderColor:'#1F3864',backgroundColor:'rgba(31,56,100,.10)',fill:true,tension:.3,pointRadius:2,spanGaps:true}
   ]},options:baseOpts(M[k].fmt)});
 }
@@ -707,8 +707,8 @@ function generateSwot(){
     if(avg){const r=latest.netP/avg;if(r>=1.1)push('S',(r-1)*100,`Strong recent momentum — ${fmtMonth(latest.ym)} well above the 3-month trend`);else if(r<=0.9)push('W',(1-r)*100,`Recent dip — ${fmtMonth(latest.ym)} below the 3-month trend`);}}
   const ctx=forecastFY();
   if(ctx){['netP','netC'].forEach(k=>{const r=paceRow(ctx,k),lab=M[k].label.toLowerCase();
-    if(r.planYtd){const pv=(r.actYtd-r.planYtd)/r.planYtd*100;if(pv>=3)push('S',pv,`Ahead of forecast on ${lab} (+${pv.toFixed(0)}% vs plan YTD)`);else if(pv<=-3)push('T',pv,`Behind forecast on ${lab} (${pv.toFixed(0)}% vs plan YTD)`);}
-    if(r.planFull){const jv=(r.proj-r.planFull)/r.planFull*100;if(jv>=5)push('O',jv,`On pace to beat the full-year ${lab} plan by ${jv.toFixed(0)}%`);else if(jv<=-5)push('T',jv,`Projected to finish ${jv.toFixed(0)}% under the full-year ${lab} plan`);}});}
+    if(r.planYtd){const pv=(r.actYtd-r.planYtd)/r.planYtd*100;if(pv>=3)push('S',pv,`Ahead of forecast on ${lab} (+${pv.toFixed(0)}% vs forecast YTD)`);else if(pv<=-3)push('T',pv,`Behind forecast on ${lab} (${pv.toFixed(0)}% vs forecast YTD)`);}
+    if(r.planFull){const jv=(r.proj-r.planFull)/r.planFull*100;if(jv>=5)push('O',jv,`On pace to beat the full-year ${lab} forecast by ${jv.toFixed(0)}%`);else if(jv<=-5)push('T',jv,`Projected to finish ${jv.toFixed(0)}% under the full-year ${lab} forecast`);}});}
   if(ms.length>=12&&nzA(ms,'netP')){const buckets=MONTHS.map(()=>[]);ms.forEach(m=>{if(notCovid(m.ym))buckets[+m.ym.slice(5,7)-1].push(m.netP);});
     const avgs=buckets.map(b=>b.length?b.reduce((a,x)=>a+x,0)/b.length:null),present=avgs.map((v,i)=>({v,i})).filter(x=>x.v!=null);
     if(present.length>=6){const mx=Math.max(...present.map(x=>x.v)),mn=Math.min(...present.map(x=>x.v)),allAvg=present.reduce((a,x)=>a+x.v,0)/present.length;
