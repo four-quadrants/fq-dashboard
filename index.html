@@ -108,6 +108,16 @@ table.scard td.sp{width:100px} table.scard td.sp .spark{height:22px}
 .ovsel{font-size:12px;color:var(--ink-soft)}
 .ovsel select{padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:12px;margin-left:4px}
 .spotbox{height:360px}
+.tgtgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 22px}
+@media(max-width:640px){.tgtgrid{grid-template-columns:1fr}}
+.tgt-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.tgt-n{font-weight:600;color:var(--navy);font-size:12.5px}
+.tgt-v{color:var(--ink-soft);font-size:11.5px}
+.tgt-bar{position:relative;height:12px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;margin:5px 0 3px}
+.tgt-fill{position:absolute;left:0;top:0;bottom:0;background:var(--amber);border-radius:6px}
+.tgt-tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--navy)}
+.tgt-f{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-soft)}
+.tgt-pace{font-size:11.5px;font-weight:700}
 
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
 .panel h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);border-left:3px solid var(--amber);padding-left:8px}
@@ -539,32 +549,60 @@ function renderForecast(){
   const through=fmtMonth(ctx.latestYm),span=`${fmtMonth(ctx.fyMonths[0])}–${fmtMonth(ctx.fyMonths[ctx.fyMonths.length-1])}`;
   const rawCand=(state.isOrtho?['grossP','netP','grossC','netC','appts','newStarts','totPat','days']:['grossP','netP','grossC','netC','totPat','newPat','days','hyg']).filter(k=>M[k]);
   const effCand=metricKeys().filter(k=>isDerived(k)&&k!=='adjPct');
-  // keep only metrics the practice actually forecasts (non-zero full-year plan) — hides N/A rows like Gross Collections
+  // keep only metrics the practice actually forecasts (non-zero full-year forecast)
   const kept=[],rmap={};
   rawCand.concat(effCand).forEach(k=>{const r=paceRow(ctx,k);if(r.planFull!=null&&r.planFull!==0){kept.push(k);rmap[k]=r;}});
-  if(!kept.includes(state.fcMetric))state.fcMetric=kept.includes('netP')?'netP':kept[0];
+  // target bars + cumulative pace + beat/miss use CUMULATIVE (raw) metrics only
+  const barKeys=rawCand.filter(k=>{const r=paceRow(ctx,k);return r.planFull!=null&&r.planFull!==0;});
+  if(!barKeys.includes(state.fcMetric))state.fcMetric=barKeys.includes('netP')?'netP':barKeys[0];
+  const bars=barKeys.map(k=>{const r=paceRow(ctx,k);
+    const fill=Math.max(0,Math.min(100,r.planFull?r.actYtd/r.planFull*100:0));
+    const tick=Math.max(0,Math.min(100,r.planFull?r.planYtd/r.planFull*100:0));
+    const pace=(r.planYtd&&r.planYtd!==0)?r.actYtd/r.planYtd*100:null;
+    const pcls=pace==null?'flat':(pace>=100?'up':'down');
+    const ptxt=pace==null?'—':Math.round(pace)+'% of forecast pace';
+    return `<div class="tgt"><div class="tgt-h"><span class="tgt-n">${M[k].label}</span><span class="tgt-pace ${pcls}">${ptxt}</span></div>`
+      +`<div class="tgt-bar"><div class="tgt-fill" style="width:${fill.toFixed(1)}%"></div><div class="tgt-tick" style="left:${tick.toFixed(1)}%"></div></div>`
+      +`<div class="tgt-f"><span>${fmt(r.actYtd,M[k].fmt)} to date</span><span>${fmt(r.planFull,M[k].fmt)} full-year forecast</span></div></div>`;}).join('');
   const rows=kept.map(k=>{const r=rmap[k],dP=delta(r.actYtd,r.planYtd,k==='adjPct'),dJ=delta(r.proj,r.planFull,k==='adjPct');
     return `<tr><td>${M[k].label}</td><td>${fmt(r.actYtd,M[k].fmt)}</td><td>${fmt(r.planYtd,M[k].fmt)}</td><td class="${dP.cls}">${dP.txt}</td><td>${fmt(r.proj,M[k].fmt)}</td><td>${fmt(r.planFull,M[k].fmt)}</td><td class="${dJ.cls}">${dJ.txt}</td></tr>`;}).join('');
   el.innerHTML=`
-    <div class="panel"><h3>Forecast vs actual — FY ${ctx.curFY} · through ${through}</h3>
-      <div class="controls"><label>Metric <select id="fcSel">${kept.map(k=>`<option value="${k}"${state.fcMetric===k?' selected':''}>${M[k].label}</option>`).join('')}</select></label></div>
+    <div class="panel"><h3>Pace to forecast — FY ${ctx.curFY} · through ${through}</h3>
+      <div class="tgtgrid">${bars}</div>
+      <div class="note">Orange = actual to date toward the full-year forecast; the navy tick is where the forecast says you should be by ${through}. The % compares actual to the forecast for the elapsed period (100% = on pace).</div></div>
+    <div class="panel"><h3>Cumulative pace</h3>
+      <div class="controls"><label>Metric <select id="fcSel">${barKeys.map(k=>`<option value="${k}"${state.fcMetric===k?' selected':''}>${M[k].label}</option>`).join('')}</select></label></div>
       <div class="chartbox"><canvas id="fcChart"></canvas></div>
-      <div class="note">Monthly forecast (dashed) vs actual (solid) across the forecast year (${span}).</div></div>
+      <div class="note">Cumulative actual (orange) vs forecast (navy) across the forecast year (${span}), with a dashed projection to year-end.</div></div>
+    <div class="panel"><h3>Monthly beat / miss</h3>
+      <div class="chartbox" style="height:230px"><canvas id="bmChart"></canvas></div>
+      <div class="note">Each recorded month's actual minus forecast for the selected metric — green beat forecast, red missed. Builds up as more months are appended.</div></div>
     <div class="panel"><h3>All metrics — actual vs forecast</h3>
       <div class="tw"><table><thead><tr><th>Metric</th><th>Actual to date</th><th>Forecast to date</th><th>vs Forecast</th><th>Proj. year-end</th><th>FY forecast</th><th>Proj vs forecast</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="note">Efficiency figures are blended over the window (sum of numerator ÷ sum of denominator). “To date” only counts forecast months elapsed so far; projection = actual to date + forecast for remaining months. Metrics the practice doesn't forecast are hidden.</div></div>`;
-  document.getElementById('fcSel').onchange=e=>{state.fcMetric=e.target.value;localStorage.setItem(LS+'_fcm',state.fcMetric);drawFcChart(ctx);};
-  drawFcChart(ctx);
+  document.getElementById('fcSel').onchange=e=>{state.fcMetric=e.target.value;localStorage.setItem(LS+'_fcm',state.fcMetric);drawFcChart(ctx);drawBeatMiss(ctx);};
+  drawFcChart(ctx);drawBeatMiss(ctx);
 }
 function drawFcChart(ctx){
   if(charts.fc){try{charts.fc.destroy();}catch(e){}}
   const k=state.fcMetric,labels=ctx.fyMonths.map(fmtMonth);
-  const plan=ctx.fyMonths.map(ym=>mval(ctx.fcm[ym],k));
-  const actual=ctx.fyMonths.map(ym=>{if(ym>ctx.latestYm)return null;const a=ctx.ms.find(m=>m.ym===ym);return a?mval(a,k):null;});
+  let cp=0;const plan=ctx.fyMonths.map(ym=>{cp+=(ctx.fcm[ym][k]||0);return cp;});
+  let lastIdx=-1;ctx.fyMonths.forEach((ym,i)=>{if(ym<=ctx.latestYm&&ctx.ms.find(m=>m.ym===ym))lastIdx=i;});
+  let ca=0;const actual=ctx.fyMonths.map((ym,i)=>{if(i>lastIdx)return null;const a=ctx.ms.find(m=>m.ym===ym);if(!a)return null;ca+=(a[k]||0);return ca;});
+  const proj=ctx.fyMonths.map(()=>null);
+  if(lastIdx>=0){let r=actual[lastIdx];proj[lastIdx]=r;for(let i=lastIdx+1;i<ctx.fyMonths.length;i++){r+=(ctx.fcm[ctx.fyMonths[i]][k]||0);proj[i]=r;}}
   charts.fc=new Chart(document.getElementById('fcChart'),{data:{labels,datasets:[
-    {type:'line',label:'Forecast',data:plan,borderColor:'#1F3864',backgroundColor:'#1F3864',borderDash:[5,4],tension:.3,pointRadius:2,spanGaps:true},
-    {type:'line',label:'Actual',data:actual,borderColor:'#e8863a',backgroundColor:'rgba(232,134,58,.12)',fill:true,tension:.3,pointRadius:2,spanGaps:true}
+    {type:'line',label:'Forecast (cumulative)',data:plan,borderColor:'#1F3864',backgroundColor:'#1F3864',borderWidth:2,tension:.25,pointRadius:0,spanGaps:true},
+    {type:'line',label:'Projected',data:proj,borderColor:'#e8863a',backgroundColor:'#e8863a',borderDash:[6,4],borderWidth:2,tension:.25,pointRadius:0,spanGaps:true},
+    {type:'line',label:'Actual',data:actual,borderColor:'#e8863a',backgroundColor:'rgba(232,134,58,.10)',fill:true,borderWidth:2.6,tension:.25,pointRadius:2,spanGaps:true}
   ]},options:baseOpts(M[k].fmt)});
+}
+function drawBeatMiss(ctx){
+  if(charts.bm){try{charts.bm.destroy();}catch(e){}}
+  const k=state.fcMetric,labels=[],data=[],colors=[];
+  ctx.fyMonths.forEach(ym=>{if(ym>ctx.latestYm)return;const a=ctx.ms.find(m=>m.ym===ym);if(!a)return;const v=(a[k]||0)-(ctx.fcm[ym][k]||0);labels.push(fmtMonth(ym));data.push(v);colors.push(v>=0?'#2f9e44':'#A32D2D');});
+  const opt=baseOpts(M[k].fmt);opt.plugins.legend={display:false};
+  charts.bm=new Chart(document.getElementById('bmChart'),{type:'bar',data:{labels,datasets:[{label:'Actual − forecast',data,backgroundColor:colors,borderRadius:3}]},options:opt});
 }
 
 /* ---------- overview ---------- */
