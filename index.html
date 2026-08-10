@@ -243,7 +243,7 @@ const T_PRACTICES='tblpbRJJH83aVrNW0', T_MONTHLY='tblqHbZTnY6WG8Bp8', T_FORECAST
 const DR={name:'fldFQ9utJUs1i2cjb',slot:'fldwbKiIfMg691cxa',role:'fldhlpqaHellsHnzf',link:'fldqX2hRgsD63wp1D',ended:'fldxSnUuARGXuIm7V',start:'fldQdubWKbVGhlnjL'};
 const LIST_TOOL='mcp__22f54f58-5001-47b6-ac40-cde6185479e4__list_records_for_table';
 
-const PR={name:'fldAFjgH9h49Fem9x',uid:'fldDIczZcGe7994dp',type:'fldExbHIOMSmNuQ0o',state:'fldno1MWgUylqz81C',renewal:'fldUIyId0U9TNzQQM',dataStatus:'fldWiJ8Hx1cLPc9rQ',trackOnly:'fld8ghrOGS9UHq0mT',latestData:'fldJUgl9j19XAKBJr',reportStatus:'fldzIv29NmW3SkJfV',reportDue:'fldDO0DQbwPi0dWZx',missing:'fldAsDcCvj9buY2kb',logo:'fldrTTzJPcCnGaTmu',owner:'fldrUFlEllGgKOurv'};
+const PR={name:'fldAFjgH9h49Fem9x',uid:'fldDIczZcGe7994dp',type:'fldExbHIOMSmNuQ0o',state:'fldno1MWgUylqz81C',renewal:'fldUIyId0U9TNzQQM',dataStatus:'fldWiJ8Hx1cLPc9rQ',trackOnly:'fld8ghrOGS9UHq0mT',latestData:'fldJUgl9j19XAKBJr',reportStatus:'fldzIv29NmW3SkJfV',reportDue:'fldDO0DQbwPi0dWZx',missing:'fldAsDcCvj9buY2kb',logo:'fldrTTzJPcCnGaTmu',owner:'fldrUFlEllGgKOurv',logoDark:'fldCHZ3HSoHwPSRsH'};
 const MD={month:'fldDJyaIgXrGYxYel',loc:'fld6AyyVv2GvAh0Eh',link:'fld8JIScPigMRgbo7',
   grossP:'fldOTIraAKAFUleOD',adj:'fldOjlOk0vU2q8bXV',netP:'flduzI96lzLTBfWHB',grossC:'fldSe2ChcitVDOF8C',netC:'fld7vZYNHcrf9EiLx',
   d1p:'fldMTK0Xh3wageOf9',d1d:'flddVZLB1It45H8zA',d2p:'fldTc1hp2DdupEgpo',d2d:'fldLjdYgDDWp547g4',
@@ -332,7 +332,7 @@ async function apiRecords(resource,practice){
     if(!r.ok){let m='data '+r.status;try{m=(await r.json()).error||m;}catch(e){}throw new Error(m);}
     return (await r.json()).records||[];
   }
-  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo,PR.owner],sort:[{fieldId:PR.name,direction:'asc'}]});
+  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo,PR.owner,PR.logoDark],sort:[{fieldId:PR.name,direction:'asc'}]});
   if(resource==='monthly')return atList(T_MONTHLY,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[MD.link,[practice.id]]}]},sort:[{fieldId:MD.month,direction:'desc'}]});
   if(resource==='forecasts')return atList(T_FORECASTS,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[FC.link,[practice.id]]}]},sort:[{fieldId:FC.month,direction:'asc'}]}).catch(()=>[]);
   if(resource==='doctors')return atList(T_DOCTORS,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[DR.link,[practice.id]]}]},fieldIds:[DR.name,DR.slot,DR.role,DR.ended,DR.start],sort:[{fieldId:DR.slot,direction:'asc'}]}).catch(()=>[]);
@@ -361,7 +361,7 @@ async function loadPractices(){
     latestMonth:(typeof ld==='string'?ld:(Array.isArray(ld)&&ld.length?ld[0]:'')||'').slice(0,7),
     reportStatus:c[PR.reportStatus]||'',reportDue:num(c[PR.reportDue]),
     missing:(Array.isArray(c[PR.missing])?c[PR.missing].map(x=>x&&x.name?x.name:x):[]),
-    logo:logoUrl(c[PR.logo])};});
+    logo:logoUrl(c[PR.logo]),logoDark:!!c[PR.logoDark]};});
 }
 async function loadPractice(p){
   const [mrecs,frecs,drecs]=await Promise.all([apiRecords('monthly',p),apiRecords('forecasts',p).catch(()=>[]),apiRecords('doctors',p).catch(()=>[])]);
@@ -967,7 +967,7 @@ function cardHTML(p){
   if(p.missing&&p.missing.length)badges.push('<span class="b due">Incomplete</span>');
   if(p.trackOnly)badges.push('<span class="b">Track-only</span>');
   return `<div class="card" data-id="${p.id}">
-    <div class="logowrap"><img src="${p.logo||LOGO4Q}" alt="" loading="lazy" crossorigin="anonymous" onerror="logoImgErr(this)"></div>
+    <div class="logowrap${p.logoDark?' onDark':''}"><img src="${p.logo||LOGO4Q}" alt="" loading="lazy" crossorigin="anonymous" onerror="logoImgErr(this)"></div>
     <div class="cbody"><div class="cname">${esc(p.name)}</div><div class="cmeta">${esc(p.type||'')}${p.stt?' · '+esc(p.stt):''}${p.owner?' · '+esc(p.owner):''}</div></div>
     <div class="cbadges">${badges.join('')}</div></div>`;}
 function bindCards(){document.querySelectorAll('#home .card[data-id]').forEach(c=>c.onclick=()=>pick(c.dataset.id));}
@@ -977,6 +977,7 @@ function logoImgErr(img){
 function tuneLogoPlates(){
   document.querySelectorAll('#home .card .logowrap img').forEach(img=>{
     const apply=()=>{try{
+      if(/^data:/.test(img.currentSrc||img.src))return;
       const w=img.naturalWidth,h=img.naturalHeight;if(!w||!h)return;
       const c=document.createElement('canvas'),S=24;c.width=S;c.height=S;
       const g=c.getContext('2d');g.drawImage(img,0,0,S,S);
