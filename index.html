@@ -78,6 +78,36 @@ body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSys
 .hl-lo{background:rgba(163,45,45,.13);color:var(--neg);font-weight:700}
 .hl-tag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-left:6px;padding:1px 6px;border-radius:999px;vertical-align:middle;color:#fff}
 .hl-tag.hi{background:var(--pos)} .hl-tag.lo{background:var(--neg)}
+/* overview redesign */
+.glance{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 15px}
+.gcard .lab{font-size:11px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.gcard .val{font-size:26px;font-weight:750;margin:5px 0 2px;color:var(--navy)}
+.gcard .spwrap{height:34px;margin:4px 0 9px}
+.gcard .spwrap .muted{color:var(--ink-soft);font-size:11px}
+.spark{display:block;width:100%;height:100%}
+.gcard .chips{display:flex;gap:16px;font-size:12px}
+.gcard .gchip{display:flex;gap:6px;align-items:baseline}
+.gcard .gchip .cl{color:var(--ink-soft);font-size:10px;text-transform:uppercase;letter-spacing:.3px}
+.gcard .gchip span:last-child{font-weight:700}
+.istrip{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 2px}
+.ipill{font-size:12px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-soft)}
+.ipill.good{background:rgba(47,158,68,.12);color:var(--pos);border-color:rgba(47,158,68,.3)}
+.ipill.bad{background:rgba(163,45,45,.11);color:var(--neg);border-color:rgba(163,45,45,.28)}
+.ipill.info{background:rgba(31,56,100,.09);color:var(--navy);border-color:rgba(31,56,100,.22)}
+table.scard td .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:middle}
+table.scard .dot.good{background:var(--pos)} table.scard .dot.bad{background:var(--neg)} table.scard .dot.flat{background:var(--line)}
+table.scard td.sp{width:100px} table.scard td.sp .spark{height:22px}
+.ovtop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 12px;flex-wrap:wrap}
+.ovtop .ovcad-lab{font-size:12px;color:var(--ink-soft);font-weight:600}
+.ovsplit{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px;margin-top:16px}
+@media(max-width:860px){.ovsplit{grid-template-columns:1fr}}
+.ovsplit .panel{margin-top:0}
+.ovhd{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ovhd h3{margin:0}
+.ovsel{font-size:12px;color:var(--ink-soft)}
+.ovsel select{padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:12px;margin-left:4px}
+.spotbox{height:360px}
 
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
 .panel h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);border-left:3px solid var(--amber);padding-left:8px}
@@ -156,14 +186,16 @@ tr.prow{cursor:pointer}
 .homebar #homeSearch{flex:1;min-width:200px}
 .homecount{font-size:12px;color:var(--ink-soft);margin-left:auto}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(224px,1fr));gap:14px;margin-top:14px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;overflow:hidden;min-height:196px}
-.card:hover{border-color:var(--blue);box-shadow:0 8px 22px rgba(20,30,50,.10);transform:translateY(-2px)}
-.card .logowrap{height:96px;background:#fff;display:flex;align-items:center;justify-content:center;padding:14px;border-bottom:1px solid var(--line)}
-.card .logowrap img{max-height:100%;max-width:100%;object-fit:contain;display:block;filter:drop-shadow(0 0 1px rgba(0,0,0,.55)) drop-shadow(0 0 1px rgba(0,0,0,.35))}
-.card .cbody{padding:12px 14px 0}
+.card{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;overflow:hidden;min-height:200px;padding:12px}
+.card:hover{border-color:var(--blue);box-shadow:0 10px 24px rgba(20,30,50,.12);transform:translateY(-2px)}
+.card .logowrap{height:84px;background:#ffffff;display:flex;align-items:center;justify-content:center;padding:12px;border:1px solid var(--line);border-radius:12px}
+html[data-theme="dark"] .card .logowrap{background:#e9edf2;border-color:#cfd6e0}
+.card .logowrap.onDark,html[data-theme="dark"] .card .logowrap.onDark{background:#0f1728;border-color:#24304a}
+.card .logowrap img{max-height:100%;max-width:100%;object-fit:contain;display:block;filter:drop-shadow(0 0 1px rgba(0,0,0,.35))}
+.card .cbody{padding:12px 3px 0}
 .card .cname{font-weight:700;color:var(--navy);font-size:14.5px;line-height:1.2}
 .card .cmeta{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
-.card .cbadges{display:flex;flex-wrap:wrap;gap:6px;padding:9px 14px 14px;margin-top:auto}
+.card .cbadges{display:flex;flex-wrap:wrap;gap:6px;padding:10px 3px 2px;margin-top:auto}
 .b{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-soft);white-space:nowrap}
 .b.warn{background:#fbeceb;color:#8f2a25;border-color:#f2cfcc}
 .b.due{background:#fbf0e6;color:#9a5a1e;border-color:#f0d8bf}
@@ -529,33 +561,126 @@ function drawFcChart(ctx){
   const plan=ctx.fyMonths.map(ym=>mval(ctx.fcm[ym],k));
   const actual=ctx.fyMonths.map(ym=>{if(ym>ctx.latestYm)return null;const a=ctx.ms.find(m=>m.ym===ym);return a?mval(a,k):null;});
   charts.fc=new Chart(document.getElementById('fcChart'),{data:{labels,datasets:[
-    {type:'line',label:'Forecast',data:plan,borderColor:'#aeb4bd',backgroundColor:'#aeb4bd',borderDash:[5,4],tension:.3,pointRadius:2,spanGaps:true},
-    {type:'line',label:'Actual',data:actual,borderColor:'#1F3864',backgroundColor:'rgba(31,56,100,.10)',fill:true,tension:.3,pointRadius:2,spanGaps:true}
+    {type:'line',label:'Forecast',data:plan,borderColor:'#1F3864',backgroundColor:'#1F3864',borderDash:[5,4],tension:.3,pointRadius:2,spanGaps:true},
+    {type:'line',label:'Actual',data:actual,borderColor:'#e8863a',backgroundColor:'rgba(232,134,58,.12)',fill:true,tension:.3,pointRadius:2,spanGaps:true}
   ]},options:baseOpts(M[k].fmt)});
 }
 
 /* ---------- overview ---------- */
+function sparkSVG(vals,color,w,h){
+  const pts=vals.map((v,i)=>({v,i})).filter(p=>p.v!=null&&!isNaN(p.v));
+  if(pts.length<2)return '';
+  const xs=(vals.length-1)||1,mn=Math.min(...pts.map(p=>p.v)),mx=Math.max(...pts.map(p=>p.v)),rng=(mx-mn)||1;
+  const px=i=>(i/xs)*(w-2)+1,py=v=>h-2-((v-mn)/rng)*(h-4);
+  const d=pts.map((p,idx)=>(idx?'L':'M')+px(p.i).toFixed(1)+' '+py(p.v).toFixed(1)).join(' ');
+  const last=pts[pts.length-1];
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${px(last.i).toFixed(1)}" cy="${py(last.v).toFixed(1)}" r="2" fill="${color}"/></svg>`;
+}
+function ovWindows(ms){return{t12:ms.slice(-12),p12:ms.slice(-24,-12)};}
+function glanceCard(k,ms){
+  const def=M[k];if(!def)return '';
+  const cad=state.ovCadence,i=ms.length-1,cur=ms[i],inv=(k==='adj'||k==='adjPct');
+  const sp=sparkSVG(ms.slice(-12).map(m=>mval(m,k)),'#e8863a',150,34);
+  let val,chips;
+  if(cad==='t12'){
+    const w=ovWindows(ms),cv=agg(w.t12,k),pv=w.p12.length?agg(w.p12,k):null,d=delta(cv,pv,inv);
+    val=cv;chips=`<span class="gchip"><span class="cl">vs prior 12</span><span class="${d.cls}">${d.txt}</span></span>`;
+  }else{
+    const mom=findPrev(ms,i,1),yoy=findPrev(ms,i,12),cv=mval(cur,k),dM=delta(cv,mom?mval(mom,k):null,inv),dY=delta(cv,yoy?mval(yoy,k):null,inv);
+    val=cv;chips=`<span class="gchip"><span class="cl">MoM</span><span class="${dM.cls}">${dM.txt}</span></span><span class="gchip"><span class="cl">YoY</span><span class="${dY.cls}">${dY.txt}</span></span>`;
+  }
+  return `<div class="gcard"><div class="lab">${def.label}</div>`
+    +`<div class="val" style="color:${crColor(k,val)||'var(--navy)'}">${fmt(val,def.fmt)}</div>`
+    +`<div class="spwrap">${sp||'<span class="muted">not enough history</span>'}</div>`
+    +`<div class="chips">${chips}</div></div>`;
+}
+function overviewInsights(ms){
+  const cur=ms[ms.length-1],out=[];
+  const keys=(state.isOrtho?['netP','netC','collRatio','appts','newStarts','npExam']:['grossP','netP','netC','collRatio','totPat','newPat','adj','adjPct']).filter(k=>M[k]&&nzA(ms,k));
+  keys.forEach(k=>{const inv=(k==='adj'||k==='adjPct');
+    const s=ms.map(m=>({v:mval(m,k),ym:m.ym})).filter(p=>p.v!=null&&!isNaN(p.v));
+    if(s.length<12)return;let best=s[0],worst=s[0];s.forEach(p=>{if(p.v>best.v)best=p;if(p.v<worst.v)worst=p;});
+    const lab=M[k].label;
+    if(best.ym===cur.ym)out.push(inv?{tone:'bad',txt:lab+' hit a record high'}:{tone:'good',txt:'Record-high '+lab.toLowerCase()});
+    else if(worst.ym===cur.ym)out.push(inv?{tone:'good',txt:lab+' at its lowest on record'}:{tone:'bad',txt:'Record-low '+lab.toLowerCase()});
+  });
+  const sw=generateSwot();
+  if(!sw.thin){if(sw.S&&sw.S[0])out.push({tone:'good',txt:sw.S[0].text});
+    const wt=(sw.W||[]).concat(sw.T||[]).sort((a,b)=>b.mag-a.mag);if(wt[0])out.push({tone:'bad',txt:wt[0].text});
+    if(sw.O&&sw.O[0])out.push({tone:'info',txt:sw.O[0].text});}
+  const seen={},res=[];out.forEach(p=>{const key=p.txt.toLowerCase();if(!seen[key]){seen[key]=1;res.push(p);}});
+  if(!res.length)res.push({tone:'info',txt:'Steady month — no records or major swings.'});
+  return res.slice(0,4);
+}
+function overviewScorecard(ms){
+  const cad=state.ovCadence,i=ms.length-1,cur=ms[i],mom=findPrev(ms,i,1),yoy=findPrev(ms,i,12),w=ovWindows(ms);
+  const head=cad==='t12'
+    ?`<tr><th>Metric</th><th>T12</th><th>vs prior</th><th>12-mo trend</th></tr>`
+    :`<tr><th>Metric</th><th>Latest</th><th>MoM</th><th>YoY</th><th>12-mo trend</th></tr>`;
+  const rows=metricKeys().filter(k=>nzA(ms,k)).map(k=>{const inv=(k==='adj'||k==='adjPct'),def=M[k];
+    const sp=sparkSVG(w.t12.map(m=>mval(m,k)),'#e8863a',90,22);
+    if(cad==='t12'){const cv=agg(w.t12,k),pv=w.p12.length?agg(w.p12,k):null,d=delta(cv,pv,inv),dot=d.cls==='up'?'good':(d.cls==='down'?'bad':'flat');
+      return `<tr><td><span class="dot ${dot}"></span>${def.label}</td><td>${fmt(cv,def.fmt)}</td><td class="${d.cls}">${d.txt}</td><td class="sp">${sp}</td></tr>`;}
+    const cv=mval(cur,k),dM=delta(cv,mom?mval(mom,k):null,inv),dY=delta(cv,yoy?mval(yoy,k):null,inv),dot=dY.cls==='up'?'good':(dY.cls==='down'?'bad':'flat');
+    return `<tr><td><span class="dot ${dot}"></span>${def.label}</td><td>${fmt(cv,def.fmt)}</td><td class="${dM.cls}">${dM.txt}</td><td class="${dY.cls}">${dY.txt}</td><td class="sp">${sp}</td></tr>`;}).join('');
+  return `<div class="tw"><table class="scard"><thead>${head}</thead><tbody>${rows}</tbody></table></div>`;
+}
+function drawOvSpot(ms){
+  if(charts.ovspot){try{charts.ovspot.destroy();}catch(e){}}
+  const last12=ms.slice(-12),labels=last12.map(m=>fmtMonth(m.ym)),ctxEl=document.getElementById('ovSpot');
+  if(!ctxEl)return;
+  if(state.ovMetric==='prodcoll'){
+    charts.ovspot=new Chart(ctxEl,{data:{labels,datasets:[
+      {type:'bar',label:'Gross Production',data:last12.map(m=>m.grossP),backgroundColor:'rgba(127,178,234,.55)',borderRadius:3,order:3},
+      {type:'bar',label:'Net Production',data:last12.map(m=>m.netP),backgroundColor:'rgba(31,56,100,.9)',borderRadius:3,order:2},
+      {type:'line',label:'Net Collections',data:last12.map(m=>m.netC),borderColor:'#e8863a',backgroundColor:'#e8863a',tension:.3,pointRadius:2,order:1}
+    ]},options:baseOpts('money')});
+    return;
+  }
+  const k=state.ovMetric;
+  const cur=last12.map(m=>mval(m,k));
+  const prior=last12.map(m=>{const[y,mo]=m.ym.split('-');const pm=ms.find(x=>x.ym===(+y-1)+'-'+mo);return pm?mval(pm,k):null;});
+  const ds=[
+    {type:'line',label:'Prior year',data:prior,borderColor:'#9aa1ab',backgroundColor:'#9aa1ab',borderWidth:1.4,tension:.3,pointRadius:0,spanGaps:true},
+    {type:'line',label:'This year',data:cur,borderColor:'#e8863a',backgroundColor:'rgba(232,134,58,.10)',borderWidth:2.6,fill:true,tension:.3,pointRadius:2,spanGaps:true}
+  ];
+  const fctx=forecastFY();
+  if(fctx&&fctx.fcm){const fc=last12.map(m=>{const r=fctx.fcm[m.ym];return r?mval(r,k):null;});
+    if(fc.some(v=>v!=null))ds.push({type:'line',label:'Forecast',data:fc,borderColor:'#1F3864',backgroundColor:'#1F3864',borderDash:[6,4],borderWidth:1.8,tension:.3,pointRadius:0,spanGaps:true});}
+  charts.ovspot=new Chart(ctxEl,{data:{labels,datasets:ds},options:baseOpts(M[k].fmt)});
+}
 function renderOverview(){
   const ms=months(),el=document.getElementById('v-overview');
   if(!ms.length){el.innerHTML='<div class="panel"><div class="err">No monthly data for this practice yet.</div></div>';return;}
-  const i=ms.length-1,cur=ms[i],mom=findPrev(ms,i,1),yoy=findPrev(ms,i,12);
-  const keys=state.isOrtho?['netP','netC','collRatio','appts','newStarts','npExam','txConsult','netPerDay']
-                          :['grossP','netP','netC','collRatio','netPerDay','netPerPat','totPat','newPat','newPatPct'];
-  const cards=keys.filter(k=>M[k]).map(k=>{const def=M[k],cv=mval(cur,k),inv=(k==='adj'||k==='adjPct');
-    const dM=delta(cv,mom?mval(mom,k):null,inv),dY=delta(cv,yoy?mval(yoy,k):null,inv);
-    return `<div class="kpi"><div class="lab">${def.label}</div><div class="val" style="${crColor(k,cv)?'color:'+crColor(k,cv):''}">${fmt(cv,def.fmt)}</div>
-      <div class="deltas"><div class="d"><div class="dl">MoM</div><div class="dv ${dM.cls}">${dM.txt}</div></div>
-      <div class="d"><div class="dl">YoY</div><div class="dv ${dY.cls}">${dY.txt}</div></div></div></div>`;}).join('');
-  el.innerHTML=`<div class="kgrid">${cards}</div>
-    <div class="panel"><h3>Last 12 months — Production &amp; Collections</h3>
-    <div class="chartbox"><canvas id="ovChart"></canvas></div>
-    <div class="note">Latest month ${fmtMonth(cur.ym)}${mom?` · prior ${fmtMonth(mom.ym)}`:''}${yoy?` · year ago ${fmtMonth(yoy.ym)}`:''}. MoM vs the prior month, YoY vs the same month last year. Efficiency deltas read “good” in green (e.g. a lower adjustment rate is green).</div></div>`;
-  const last=ms.slice(-12);
-  charts.ov=new Chart(document.getElementById('ovChart'),{data:{labels:last.map(m=>fmtMonth(m.ym)),datasets:[
-    {type:'bar',label:'Gross Production',data:last.map(m=>m.grossP),backgroundColor:'rgba(127,178,234,.55)',borderRadius:3,order:3},
-    {type:'bar',label:'Net Production',data:last.map(m=>m.netP),backgroundColor:'rgba(31,56,100,.9)',borderRadius:3,order:2},
-    {type:'line',label:'Net Collections',data:last.map(m=>m.netC),borderColor:'#e8863a',backgroundColor:'#e8863a',tension:.3,pointRadius:2,order:1}
-  ]},options:baseOpts('money')});
+  const cur=ms[ms.length-1];
+  if(state.ovCadence!=='t12'&&state.ovCadence!=='month')state.ovCadence=localStorage.getItem(LS+'_ovcad')||'t12';
+  const comboOK=!state.isOrtho&&(nzA(ms,'grossP')||nzA(ms,'netP'));
+  const spotKeys=metricKeys().filter(k=>nzA(ms,k));
+  if(!state.ovMetric)state.ovMetric=localStorage.getItem(LS+'_ovm')||(comboOK?'prodcoll':'netP');
+  if(state.ovMetric==='prodcoll'&&!comboOK)state.ovMetric=spotKeys.includes('netP')?'netP':spotKeys[0];
+  if(state.ovMetric!=='prodcoll'&&!spotKeys.includes(state.ovMetric))state.ovMetric=comboOK?'prodcoll':spotKeys[0];
+  const cadTxt=state.ovCadence==='t12'?'Trailing 12 months':'Latest month · '+fmtMonth(cur.ym);
+  const gKeys=(state.isOrtho?['netP','netC','collRatio','netPerDay','newStarts','npExam']:['netP','netC','collRatio','netPerDay','newPat','adjPct']).filter(k=>M[k]);
+  const glance=gKeys.map(k=>glanceCard(k,ms)).join('');
+  const istrip=overviewInsights(ms).map(p=>`<span class="ipill ${p.tone}">${esc(p.txt)}</span>`).join('');
+  const opts=(comboOK?`<option value="prodcoll"${state.ovMetric==='prodcoll'?' selected':''}>Production &amp; Collections</option>`:'')
+    +spotKeys.map(k=>`<option value="${k}"${state.ovMetric===k?' selected':''}>${M[k].label}</option>`).join('');
+  el.innerHTML=`
+    <div class="ovtop"><div class="ovcad-lab">Showing: ${cadTxt}</div>
+      <div class="seg" id="ovCad"><button data-c="t12"${state.ovCadence==='t12'?' class="active"':''}>Trailing 12</button><button data-c="month"${state.ovCadence==='month'?' class="active"':''}>This month</button></div></div>
+    <div class="glance">${glance}</div>
+    <div class="istrip">${istrip}</div>
+    <div class="ovsplit">
+      <div class="panel"><div class="ovhd"><h3>Spotlight</h3>
+        <label class="ovsel">Metric <select id="ovSel">${opts}</select></label></div>
+        <div class="chartbox spotbox"><canvas id="ovSpot"></canvas></div>
+        <div class="note">${state.ovMetric==='prodcoll'?'Gross production (light blue) and net production (navy) bars with net collections (orange line), last 12 months.':'Current year (orange) vs prior year (grey)'+(hasForecast()?' vs forecast (navy dashed)':'')+', last 12 months.'}</div></div>
+      <div class="panel"><h3>Scorecard — ${state.ovCadence==='t12'?'trailing 12':'latest month'}</h3>${overviewScorecard(ms)}
+        <div class="note">The toggle up top switches the cards and this table between the trailing-12 window (total for dollars/volume, blended average for rates; "vs prior" = the prior 12 months) and the latest month (with MoM / YoY). Green = better, including a lower adjustment rate.</div></div>
+    </div>`;
+  el.querySelectorAll('#ovCad button').forEach(b=>b.onclick=()=>{state.ovCadence=b.dataset.c;localStorage.setItem(LS+'_ovcad',state.ovCadence);renderOverview();});
+  document.getElementById('ovSel').onchange=e=>{state.ovMetric=e.target.value;localStorage.setItem(LS+'_ovm',state.ovMetric);drawOvSpot(ms);};
+  drawOvSpot(ms);
 }
 
 /* ---------- trends ---------- */
@@ -613,8 +738,8 @@ function drawTrend(){
     const series=y=>{let a=labels.map((_,mi)=>{const row=ms.find(m=>+m.ym.slice(0,4)===y&&+m.ym.slice(5,7)===mi+1);return row?mval(row,state.metric):null;});if(state.rolling)a=roll3(a);return a;};
     const hasPrior=ms.some(m=>+m.ym.slice(0,4)===curY-1);
     const dsets=[];
-    if(hasPrior)dsets.push({label:(curY-1)+' (prior YTD)',data:series(curY-1),borderColor:'#aeb4bd',backgroundColor:'#aeb4bd',borderDash:[5,4],tension:.3,pointRadius:2,spanGaps:true,fill:false});
-    dsets.push({label:curY+' YTD',data:series(curY),borderColor:'#1F3864',backgroundColor:'rgba(31,56,100,.08)',tension:.3,pointRadius:2,spanGaps:true,fill:true});
+    if(hasPrior)dsets.push({label:(curY-1)+' (prior YTD)',data:series(curY-1),borderColor:'#9aa1ab',backgroundColor:'#9aa1ab',borderDash:[5,4],tension:.3,pointRadius:2,spanGaps:true,fill:false});
+    dsets.push({label:curY+' YTD',data:series(curY),borderColor:'#e8863a',backgroundColor:'rgba(232,134,58,.10)',tension:.3,pointRadius:2,spanGaps:true,fill:true});
     cfg={type:'line',data:{labels,datasets:dsets},options:baseOpts(def.fmt)};
     const sub=y=>ms.filter(m=>+m.ym.slice(0,4)===y&&+m.ym.slice(5,7)<=lastMo);
     totalsHTML=lead+chip(curY+' YTD',agg(sub(curY),state.metric))+(hasPrior?chip(curY-1+' YTD',agg(sub(curY-1),state.metric)):'');
@@ -622,7 +747,7 @@ function drawTrend(){
     note.textContent=`Year-to-date ${curY}${hasPrior?` vs ${curY-1}`:''} (through ${MONTHS[lastMo-1]}).`+(hasPrior?'':' No prior-year data to overlay.')+(state.rolling?' Smoothed with a trailing 3-month average.':'');
   }else{
     const win=windowMonths(ms,state.timeframe);let data=win.map(m=>mval(m,state.metric));if(state.rolling)data=roll3(data);
-    cfg={type:'line',data:{labels:win.map(m=>fmtMonth(m.ym)),datasets:[{label:def.label,data,borderColor:'#1F3864',backgroundColor:'rgba(31,56,100,.08)',fill:true,tension:.3,pointRadius:1.5,spanGaps:true}]},options:baseOpts(def.fmt)};
+    cfg={type:'line',data:{labels:win.map(m=>fmtMonth(m.ym)),datasets:[{label:def.label,data,borderColor:'#e8863a',backgroundColor:'rgba(232,134,58,.10)',fill:true,tension:.3,pointRadius:1.5,spanGaps:true}]},options:baseOpts(def.fmt)};
     totalsHTML=lead+chip(TFS[state.timeframe],agg(win,state.metric));
     note.textContent=`Continuous monthly timeline — ${TFS[state.timeframe]} (${win.length} month${win.length===1?'':'s'}).`+(state.rolling?' Smoothed with a trailing 3-month average.':'');
   }
@@ -842,14 +967,29 @@ function cardHTML(p){
   if(p.missing&&p.missing.length)badges.push('<span class="b due">Incomplete</span>');
   if(p.trackOnly)badges.push('<span class="b">Track-only</span>');
   return `<div class="card" data-id="${p.id}">
-    <div class="logowrap"><img src="${p.logo||LOGO4Q}" alt="" loading="lazy" onerror="this.onerror=null;this.src=LOGO4Q"></div>
+    <div class="logowrap"><img src="${p.logo||LOGO4Q}" alt="" loading="lazy" crossorigin="anonymous" onerror="logoImgErr(this)"></div>
     <div class="cbody"><div class="cname">${esc(p.name)}</div><div class="cmeta">${esc(p.type||'')}${p.stt?' · '+esc(p.stt):''}${p.owner?' · '+esc(p.owner):''}</div></div>
     <div class="cbadges">${badges.join('')}</div></div>`;}
 function bindCards(){document.querySelectorAll('#home .card[data-id]').forEach(c=>c.onclick=()=>pick(c.dataset.id));}
+function logoImgErr(img){
+  if(img.getAttribute('crossorigin')){const s=img.src;img.removeAttribute('crossorigin');img.src='';img.src=s;return;}
+  img.onerror=null;img.src=LOGO4Q;}
+function tuneLogoPlates(){
+  document.querySelectorAll('#home .card .logowrap img').forEach(img=>{
+    const apply=()=>{try{
+      const w=img.naturalWidth,h=img.naturalHeight;if(!w||!h)return;
+      const c=document.createElement('canvas'),S=24;c.width=S;c.height=S;
+      const g=c.getContext('2d');g.drawImage(img,0,0,S,S);
+      const d=g.getImageData(0,0,S,S).data;let lum=0,op=0;
+      for(let i=0;i<d.length;i+=4){const a=d[i+3];if(a<24)continue;op++;lum+=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];}
+      if(op<8)return;if(lum/op>=205)img.parentNode.classList.add('onDark');
+    }catch(e){}};
+    if(img.complete&&img.naturalWidth)apply();else img.addEventListener('load',apply,{once:true});
+  });}
 function renderHomeCards(){const list=filteredHome();
   document.querySelector('#home .cards').innerHTML=list.map(cardHTML).join('')||'<div class="note">No practices match.</div>';
   document.querySelector('#home .homecount').textContent=`${list.length} of ${state.practices.length}`;
-  bindCards();}
+  bindCards();tuneLogoPlates();}
 function renderHome(){
   const el=document.getElementById('home'),hf=state.hf;
   const types=[...new Set(state.practices.map(p=>p.type).filter(Boolean))].sort();
