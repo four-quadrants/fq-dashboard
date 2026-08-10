@@ -555,6 +555,7 @@ function renderForecast(){
   // target bars + cumulative pace + beat/miss use CUMULATIVE (raw) metrics only
   const barKeys=rawCand.filter(k=>{const r=paceRow(ctx,k);return r.planFull!=null&&r.planFull!==0;});
   if(!barKeys.includes(state.fcMetric))state.fcMetric=barKeys.includes('netP')?'netP':barKeys[0];
+  if(state.fcView!=='cum'&&state.fcView!=='month')state.fcView=localStorage.getItem(LS+'_fcview')||'cum';
   const bars=barKeys.map(k=>{const r=paceRow(ctx,k);
     const fill=Math.max(0,Math.min(100,r.planFull?r.actYtd/r.planFull*100:0));
     const tick=Math.max(0,Math.min(100,r.planFull?r.planYtd/r.planFull*100:0));
@@ -570,10 +571,10 @@ function renderForecast(){
     <div class="panel"><h3>Pace to forecast — FY ${ctx.curFY} · through ${through}</h3>
       <div class="tgtgrid">${bars}</div>
       <div class="note">Orange = actual to date toward the full-year forecast; the navy tick is where the forecast says you should be by ${through}. The % compares actual to the forecast for the elapsed period (100% = on pace).</div></div>
-    <div class="panel"><h3>Cumulative pace</h3>
-      <div class="controls"><label>Metric <select id="fcSel">${barKeys.map(k=>`<option value="${k}"${state.fcMetric===k?' selected':''}>${M[k].label}</option>`).join('')}</select></label></div>
+    <div class="panel"><div class="ovhd"><h3>Forecast pace</h3>
+      <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="seg" id="fcView"><button data-v="cum"${state.fcView==='cum'?' class="active"':''}>Cumulative</button><button data-v="month"${state.fcView==='month'?' class="active"':''}>Monthly</button></span><label class="ovsel">Metric <select id="fcSel">${barKeys.map(k=>`<option value="${k}"${state.fcMetric===k?' selected':''}>${M[k].label}</option>`).join('')}</select></label></span></div>
       <div class="chartbox"><canvas id="fcChart"></canvas></div>
-      <div class="note">Cumulative actual (orange) vs forecast (navy) across the forecast year (${span}), with a dashed projection to year-end.</div></div>
+      <div class="note" id="fcNote"></div></div>
     <div class="panel"><h3>Monthly beat / miss</h3>
       <div class="chartbox" style="height:230px"><canvas id="bmChart"></canvas></div>
       <div class="note">Each recorded month's actual minus forecast for the selected metric — green beat forecast, red missed. Builds up as more months are appended.</div></div>
@@ -581,21 +582,33 @@ function renderForecast(){
       <div class="tw"><table><thead><tr><th>Metric</th><th>Actual to date</th><th>Forecast to date</th><th>vs Forecast</th><th>Proj. year-end</th><th>FY forecast</th><th>Proj vs forecast</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="note">Efficiency figures are blended over the window (sum of numerator ÷ sum of denominator). “To date” only counts forecast months elapsed so far; projection = actual to date + forecast for remaining months. Metrics the practice doesn't forecast are hidden.</div></div>`;
   document.getElementById('fcSel').onchange=e=>{state.fcMetric=e.target.value;localStorage.setItem(LS+'_fcm',state.fcMetric);drawFcChart(ctx);drawBeatMiss(ctx);};
+  el.querySelectorAll('#fcView button').forEach(b=>b.onclick=()=>{state.fcView=b.dataset.v;localStorage.setItem(LS+'_fcview',state.fcView);document.querySelectorAll('#fcView button').forEach(x=>x.classList.toggle('active',x===b));drawFcChart(ctx);});
   drawFcChart(ctx);drawBeatMiss(ctx);
 }
 function drawFcChart(ctx){
   if(charts.fc){try{charts.fc.destroy();}catch(e){}}
-  const k=state.fcMetric,labels=ctx.fyMonths.map(fmtMonth);
+  const k=state.fcMetric,labels=ctx.fyMonths.map(fmtMonth),blue=isDark()?'#7fb2ea':'#3f8fd8',note=document.getElementById('fcNote');
+  if(state.fcView==='month'){
+    const plan=ctx.fyMonths.map(ym=>ctx.fcm[ym][k]||0);
+    const actual=ctx.fyMonths.map(ym=>{if(ym>ctx.latestYm)return null;const a=ctx.ms.find(m=>m.ym===ym);return a?(a[k]||0):null;});
+    charts.fc=new Chart(document.getElementById('fcChart'),{data:{labels,datasets:[
+      {type:'line',label:'Forecast',data:plan,borderColor:blue,backgroundColor:blue,borderDash:[6,4],borderWidth:2,tension:.3,pointRadius:2,spanGaps:true},
+      {type:'line',label:'Actual',data:actual,borderColor:'#e8863a',backgroundColor:'rgba(232,134,58,.10)',fill:true,borderWidth:2.6,tension:.3,pointRadius:2,spanGaps:true}
+    ]},options:baseOpts(M[k].fmt)});
+    if(note)note.textContent='Each month\'s forecast (blue, dashed) vs actual (orange) across the forecast year.';
+    return;
+  }
   let cp=0;const plan=ctx.fyMonths.map(ym=>{cp+=(ctx.fcm[ym][k]||0);return cp;});
   let lastIdx=-1;ctx.fyMonths.forEach((ym,i)=>{if(ym<=ctx.latestYm&&ctx.ms.find(m=>m.ym===ym))lastIdx=i;});
   let ca=0;const actual=ctx.fyMonths.map((ym,i)=>{if(i>lastIdx)return null;const a=ctx.ms.find(m=>m.ym===ym);if(!a)return null;ca+=(a[k]||0);return ca;});
   const proj=ctx.fyMonths.map(()=>null);
   if(lastIdx>=0){let r=actual[lastIdx];proj[lastIdx]=r;for(let i=lastIdx+1;i<ctx.fyMonths.length;i++){r+=(ctx.fcm[ctx.fyMonths[i]][k]||0);proj[i]=r;}}
   charts.fc=new Chart(document.getElementById('fcChart'),{data:{labels,datasets:[
-    {type:'line',label:'Forecast (cumulative)',data:plan,borderColor:'#1F3864',backgroundColor:'#1F3864',borderWidth:2,tension:.25,pointRadius:0,spanGaps:true},
+    {type:'line',label:'Forecast (cumulative)',data:plan,borderColor:blue,backgroundColor:blue,borderWidth:2,tension:.25,pointRadius:0,spanGaps:true},
     {type:'line',label:'Projected',data:proj,borderColor:'#e8863a',backgroundColor:'#e8863a',borderDash:[6,4],borderWidth:2,tension:.25,pointRadius:0,spanGaps:true},
     {type:'line',label:'Actual',data:actual,borderColor:'#e8863a',backgroundColor:'rgba(232,134,58,.10)',fill:true,borderWidth:2.6,tension:.25,pointRadius:2,spanGaps:true}
   ]},options:baseOpts(M[k].fmt)});
+  if(note)note.textContent='Cumulative actual (orange) vs forecast (blue) across the forecast year, with a dashed projection to year-end.';
 }
 function drawBeatMiss(ctx){
   if(charts.bm){try{charts.bm.destroy();}catch(e){}}
@@ -685,7 +698,7 @@ function drawOvSpot(ms){
   ];
   const fctx=forecastFY();
   if(fctx&&fctx.fcm){const fc=last12.map(m=>{const r=fctx.fcm[m.ym];return r?mval(r,k):null;});
-    if(fc.some(v=>v!=null))ds.push({type:'line',label:'Forecast',data:fc,borderColor:'#1F3864',backgroundColor:'#1F3864',borderDash:[6,4],borderWidth:1.8,tension:.3,pointRadius:0,spanGaps:true});}
+    if(fc.some(v=>v!=null))ds.push({type:'line',label:'Forecast',data:fc,borderColor:(isDark()?'#7fb2ea':'#3f8fd8'),backgroundColor:(isDark()?'#7fb2ea':'#3f8fd8'),borderDash:[6,4],borderWidth:1.8,tension:.3,pointRadius:0,spanGaps:true});}
   charts.ovspot=new Chart(ctxEl,{data:{labels,datasets:ds},options:baseOpts(M[k].fmt)});
 }
 function renderOverview(){
@@ -763,10 +776,10 @@ function drawTrend(){
   const lead=`<span class="lbl">${kind} —</span>`;
   if(state.trendMode==='yoy'){
     const years=[...new Set(ms.map(m=>+m.ym.slice(0,4)))].sort().slice(-3);
-    const pal=['#aeb4bd','#3f8fd8','#1F3864'];
     const dsets=years.map((y,idx)=>{let data=MONTHS.map((_,mi)=>{const row=ms.find(m=>+m.ym.slice(0,4)===y&&+m.ym.slice(5,7)===mi+1);return row?mval(row,state.metric):null;});
       if(state.rolling)data=roll3(data);
-      return{label:String(y),data,borderColor:pal[idx]||'#57bd5f',backgroundColor:pal[idx]||'#57bd5f',tension:.3,pointRadius:2,spanGaps:true};});
+      const fromNew=years.length-1-idx,col=fromNew===0?'#e8863a':(fromNew===1?'#9aa1ab':(isDark()?'#7fb2ea':'#3f8fd8'));
+      return{label:String(y),data,borderColor:col,backgroundColor:fromNew===0?'rgba(232,134,58,.10)':col,borderDash:fromNew===1?[5,4]:[],borderWidth:fromNew===0?2.6:1.8,fill:fromNew===0,tension:.3,pointRadius:2,spanGaps:true};});
     cfg={type:'line',data:{labels:MONTHS,datasets:dsets},options:baseOpts(def.fmt)};
     totalsHTML=lead+years.map(y=>chip(y,agg(ms.filter(m=>+m.ym.slice(0,4)===y),state.metric))).join('');
     if(years.length>=2){const yv=years.slice(-2);totalsHTML+=varChip('Δ vs '+yv[0],agg(ms.filter(m=>+m.ym.slice(0,4)===yv[1]),state.metric),agg(ms.filter(m=>+m.ym.slice(0,4)===yv[0]),state.metric));}
