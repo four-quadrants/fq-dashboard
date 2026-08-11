@@ -1149,9 +1149,9 @@ function computeHighsLows(){
       if(c!=null&&pr!=null&&pr>0){const dev=(c-pr)/pr;
         if(dev>=HL_MOVE_MIN)recs.push({label:'Collection Ratio',fmt:'pct',dir:'high',dev,value:c});
         else if(dev<=-HL_MOVE_MIN)recs.push({label:'Collection Ratio',fmt:'pct',dir:'low',dev,value:c});}}
-    if(recs.length&&behind===0)rows.push({p,ym:latestYm,recs});   // highs/lows: only fully current practices (data through the expected month)
+    if(recs.length&&behind===0&&!(p.missing&&p.missing.length))rows.push({p,ym:latestYm,recs});   // highs/lows: only current AND complete reports (no missing fields)
     const cr=blendRatio(h,latestYm,'netC','netP',3);
-    if(cr!=null&&cr>0&&cr<95)watch.push({p,tone:'bad',sev:2,txt:'Collection ratio '+cr.toFixed(0)+'% (3-mo, under 95%)'});
+    if(cr!=null&&cr>0&&cr<90)watch.push({p,tone:'bad',sev:2,txt:'Collection ratio '+cr.toFixed(0)+'% (3-mo, under 90%)'});
     const ar=blendRatio(h,latestYm,'adj','grossP',3);
     if(ar!=null&&ar>35)watch.push({p,tone:'warn',sev:1,txt:'Adjustment rate '+ar.toFixed(0)+'% of gross (3-mo)'});
   });
@@ -1179,7 +1179,7 @@ function openHLModal(){
   const back=document.createElement('div');back.className='hlback';
   back.innerHTML=`<div class="hlmodal mw"><button class="hx" aria-label="Close">&times;</button>
     <h3>Highs &amp; lows &middot; watchlist</h3>
-    <div class="note"><b>Highs &amp; lows</b>: the last 3 months are 30%+ above (green) or below (red) the same 3 months a year ago, in Net Production, Net Collections, Patients, New Patients, or Collection Ratio. <b>Watchlist</b>: collection ratio under 95%, adjustment rate over 35% of gross, or data 2+ months overdue. Practices without a full year of history (or missing recent data) are excluded.</div>
+    <div class="note"><b>Highs &amp; lows</b>: the last 3 months are 30%+ above (green) or below (red) the same 3 months a year ago, in Net Production, Net Collections, Patients, New Patients, or Collection Ratio. <b>Watchlist</b>: collection ratio under 90%, adjustment rate over 35% of gross, or data 2+ months overdue. Practices without a full year of history (or missing recent data) are excluded.</div>
     <div class="mwcols"><div><div class="mwh">Highs &amp; lows &middot; vs same 3 months last year</div>${rowsHTML}</div><div><div class="mwh red">Watchlist</div>${watchHTML}</div></div></div>`;
   document.body.appendChild(back);
   const close=()=>{back.remove();document.removeEventListener('keydown',onKey);};
