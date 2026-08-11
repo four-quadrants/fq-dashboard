@@ -167,6 +167,14 @@ tbody tr:hover{background:var(--panel-2)}
 .hlrow:hover{background:rgba(127,127,127,.06)}
 .hlrow .hlname{font-weight:700;min-width:180px;color:var(--navy)}
 .hlchips{display:flex;flex-wrap:wrap;gap:6px}
+.hlmodal.mw{max-width:860px}
+.mwcols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}
+@media(max-width:640px){.mwcols{grid-template-columns:1fr}}
+.mwh{font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;border-left:3px solid var(--orange,#e8863a);padding-left:8px;margin-bottom:6px}
+.mwh.red{border-color:var(--neg)}
+.wreason{font-size:11.5px;margin-top:2px}
+.wreason.bad{color:var(--neg)}
+.wreason.warn{color:var(--amber,#c26a12)}
 .hlchip{font-size:11.5px;border-radius:999px;padding:2px 9px;border:1px solid var(--line);white-space:nowrap}
 .hlchip.good{background:rgba(47,158,68,.13);color:var(--pos);border-color:rgba(47,158,68,.4)}
 .hlchip.bad{background:rgba(163,45,45,.12);color:var(--neg);border-color:rgba(163,45,45,.4)}
@@ -881,7 +889,7 @@ function generateSwot(){
     else push('W',99.5-v,`Collection ratio ${v.toFixed(1)}% — just under the 99.5% target`);}}
   if(nzA(ms,'hyg')){const hv=agg(t12,'hygPct');if(hv!=null&&hv<25)push('O',25-hv,`Hygiene is ${hv.toFixed(0)}% of production — recare/hygiene has room to grow`);}
   if(ms.length>=4&&nzA(ms,'netP')){const prev3=ms.slice(-4,-1),avg=prev3.reduce((a,m)=>a+m.netP,0)/prev3.length;
-    if(avg){const r=latest.netP/avg;if(r>=1.1)push('S',(r-1)*100,`Strong recent momentum — ${fmtMonth(latest.ym)} well above the 3-month trend`);else if(r<=0.9)push('W',(1-r)*100,`Recent dip — ${fmtMonth(latest.ym)} below the 3-month trend`);}}
+    if(avg){const r=latest.netP/avg;if(r>=1.1)push('S',(r-1)*100,`Net production momentum — ${fmtMonth(latest.ym)} ran ${Math.round((r-1)*100)}% above its 3-month average`);else if(r<=0.9)push('W',(1-r)*100,`Net production dip — ${fmtMonth(latest.ym)} was ${Math.round((1-r)*100)}% below its 3-month average`);}}
   const ctx=forecastFY();
   if(ctx){['netP','netC'].forEach(k=>{const r=paceRow(ctx,k),lab=M[k].label.toLowerCase();
     if(r.planYtd){const pv=(r.actYtd-r.planYtd)/r.planYtd*100;if(pv>=3)push('S',pv,`Ahead of forecast on ${lab} (+${pv.toFixed(0)}% vs forecast YTD)`);else if(pv<=-3)push('T',pv,`Behind forecast on ${lab} (${pv.toFixed(0)}% vs forecast YTD)`);}
@@ -1108,62 +1116,71 @@ async function loadPortfolio(){
 }
 /* ---------- home Highs & Lows: all-time records set in the latest reported month ---------- */
 const HL_MIN_MONTHS=12;
-const HL_METRICS=[
-  {k:'grossP',label:'Gross Production',fmt:'money',inverse:false},
-  {k:'netP',label:'Net Production',fmt:'money',inverse:false},
-  {k:'netC',label:'Net Collections',fmt:'money',inverse:false},
-  {k:'adj',label:'Adjustments',fmt:'money',inverse:true},          // inverse: an all-time LOW is the good news
-  {k:'__pat',label:'Patients',fmt:'int',inverse:false},            // Patients, or Appointments for ortho
-  {k:'newPat',label:'New Patients',fmt:'int',inverse:false}];
+// ---- Home hero: Highs & Lows (last 3 months vs the same 3 months a year ago, 20%+) + Watchlist ----
+function ymAddM(ym,d){let y=+ym.slice(0,4),m=+ym.slice(5,7)-1+d;while(m<0){m+=12;y--;}while(m>11){m-=12;y++;}return y+'-'+String(m+1).padStart(2,'0');}
+function avg3(h,endYm,key){let s=0;for(let i=0;i<3;i++){const r=h[ymAddM(endYm,-i)];const v=r?r[key]:null;if(v==null||isNaN(v))return null;s+=v;}return s/3;}
+function ratio3(h,endYm,numKey,denKey){let num=0,den=0;for(let i=0;i<3;i++){const r=h[ymAddM(endYm,-i)];if(!r||r[numKey]==null||r[denKey]==null||r[denKey]<=0)return null;num+=r[numKey];den+=r[denKey];}return den>0?num/den*100:null;}
+function blendRatio(h,endYm,numKey,denKey,n){let num=0,den=0,c=0;for(let i=0;i<n;i++){const r=h[ymAddM(endYm,-i)];if(r&&r[numKey]!=null&&r[denKey]!=null){num+=r[numKey];den+=r[denKey];c++;}}return (c>0&&den>0)?num/den*100:null;}
+const HL_MOVE_MIN=0.30;   // flag when the last 3 months are 30%+ off the same 3 months a year ago
 function computeHighsLows(){
-  const hist=state.portfolioHist||{},expNum=ymNum(expectedDataYm()),out=[];
+  const hist=state.portfolioHist||{},expNum=ymNum(expectedDataYm()),rows=[],watch=[];
   state.practices.forEach(p=>{
     const h=hist[p.id];if(!h)return;
-    const yms=Object.keys(h).sort();
-    if(yms.length<HL_MIN_MONTHS)return;                            // 'all-time' needs real history
-    const latestYm=yms[yms.length-1],behind=expNum-ymNum(latestYm);
-    if(behind<0||behind>1)return;                                  // only a *freshly* reported month counts
+    const yms=Object.keys(h).sort();if(!yms.length)return;
+    const latestYm=yms[yms.length-1],behind=expNum-ymNum(latestYm),prevYm=ymAddM(latestYm,-12);
+    if(behind>=2){watch.push({p,tone:'warn',sev:0,txt:'Data overdue ('+behind+' months behind)'});return;}
+    if(behind<0||behind>1)return;                                  // only a freshly reported month
     let sumTot=0,sumApp=0;yms.forEach(y=>{sumTot+=h[y].totPat||0;sumApp+=h[y].appts||0;});
     const patKey=(sumTot===0&&sumApp>0)?'appts':'totPat',patLabel=patKey==='appts'?'Appointments':'Patients';
-    const recs=[];
-    HL_METRICS.forEach(m=>{
-      const key=m.k==='__pat'?patKey:m.k,label=m.k==='__pat'?patLabel:m.label;
-      const cur=h[latestYm][key];if(!(cur>0))return;               // metric must be reported this month
-      const prior=yms.slice(0,-1).map(y=>h[y][key]).filter(v=>v>0);
-      if(!prior.length)return;
-      const pmax=Math.max(...prior),pmin=Math.min(...prior);
-      let dir=null;if(cur>pmax)dir='high';else if(cur<pmin)dir='low';
-      if(!dir)return;
-      recs.push({label,fmt:m.fmt,dir,good:m.inverse?(dir==='low'):(dir==='high'),value:cur});
-    });
-    if(recs.length)out.push({p,ym:latestYm,recs});
+    const cur=h[latestYm],recs=[];
+    const move=(key,label,fmt,minBase)=>{
+      const c3=avg3(h,latestYm,key),p3=avg3(h,prevYm,key);                    // needs both 3-mo windows complete (incl. a year ago)
+      if(c3==null||p3==null||p3<=0)return;
+      if(minBase&&p3<minBase)return;                                         // ignore tiny-base noise
+      const dev=(c3-p3)/p3;
+      if(dev>=HL_MOVE_MIN)recs.push({label,fmt,dir:'high',dev,value:cur[key]});
+      else if(dev<=-HL_MOVE_MIN)recs.push({label,fmt,dir:'low',dev,value:cur[key]});
+    };
+    move('netP','Net Production','money',1000);
+    move('netC','Net Collections','money',1000);
+    move(patKey,patLabel,'int',20);
+    move('newPat','New Patients','int',8);
+    {const c=ratio3(h,latestYm,'netC','netP'),pr=ratio3(h,prevYm,'netC','netP');   // collection ratio, 3-mo YoY
+      if(c!=null&&pr!=null&&pr>0){const dev=(c-pr)/pr;
+        if(dev>=HL_MOVE_MIN)recs.push({label:'Collection Ratio',fmt:'pct',dir:'high',dev,value:c});
+        else if(dev<=-HL_MOVE_MIN)recs.push({label:'Collection Ratio',fmt:'pct',dir:'low',dev,value:c});}}
+    if(recs.length&&behind===0)rows.push({p,ym:latestYm,recs});   // highs/lows: only fully current practices (data through the expected month)
+    const cr=blendRatio(h,latestYm,'netC','netP',3);
+    if(cr!=null&&cr>0&&cr<95)watch.push({p,tone:'bad',sev:2,txt:'Collection ratio '+cr.toFixed(0)+'% (3-mo, under 95%)'});
+    const ar=blendRatio(h,latestYm,'adj','grossP',3);
+    if(ar!=null&&ar>35)watch.push({p,tone:'warn',sev:1,txt:'Adjustment rate '+ar.toFixed(0)+'% of gross (3-mo)'});
   });
-  out.sort((a,b)=>{const ag=a.recs.some(r=>r.good),bg=b.recs.some(r=>r.good);if(ag!==bg)return ag?-1:1;return b.recs.length-a.recs.length;});
-  return out;
+  rows.sort((a,b)=>{const ag=a.recs.some(r=>r.dir==='high'),bg=b.recs.some(r=>r.dir==='high');if(ag!==bg)return ag?-1:1;return b.recs.length-a.recs.length;});
+  watch.sort((a,b)=>b.sev-a.sev);
+  return {rows,watch:watch.slice(0,12)};
 }
 async function ensureHighsLows(){
   const chip=document.getElementById('hlStat');if(!chip)return;
   try{
     if(!state.portfolioRows)await loadPortfolio();
-    state.hlRecords=computeHighsLows();
-    const n=state.hlRecords.length;
-    if(n){chip.classList.remove('none');chip.innerHTML='<b>'+n+'</b> record'+(n===1?'':'s')+' this month';
-      chip.title='Practices that set an all-time high or low in their most recent reported month. Click to view.';chip.onclick=openHLModal;}
-    else{chip.classList.add('none');chip.innerHTML='<b>0</b> records this month';
-      chip.title='No practice set an all-time record in its latest reported month.';chip.onclick=null;}
-  }catch(e){chip.classList.add('none');chip.innerHTML='Highs / Lows';chip.title='Could not load record data.';chip.onclick=null;}
+    state.hl=computeHighsLows();
+    const nr=state.hl.rows.length,nw=state.hl.watch.length;
+    if(nr+nw){chip.classList.remove('none');chip.innerHTML='<b>'+nr+'</b> high/low &middot; <b>'+nw+'</b> watchlist';
+      chip.title='Practices 30%+ vs the same 3 months a year ago, plus the watchlist. Click to view.';chip.onclick=openHLModal;}
+    else{chip.classList.add('none');chip.innerHTML='<b>0</b> high/low &middot; 0 watchlist';
+      chip.title='Nothing notable this month.';chip.onclick=null;}
+  }catch(e){chip.classList.add('none');chip.innerHTML='Highs / Lows';chip.title='Could not load.';chip.onclick=null;}
 }
 function openHLModal(){
-  const recs=state.hlRecords||[];
-  const rows=recs.map(r=>{
-    const chips=r.recs.map(x=>`<span class="hlchip ${x.good?'good':'bad'}">${esc(x.label)} ${x.dir==='high'?'&#9650;':'&#9660;'} ${fmt(x.value,x.fmt)}</span>`).join('');
-    return `<div class="hlrow" data-id="${r.p.id}"><div class="hlname">${esc(r.p.name)}<div class="muted" style="font-weight:400;font-size:11.5px">${esc(r.p.type||'')}${r.p.stt?' &middot; '+esc(r.p.stt):''} &middot; ${fmtMonth(r.ym)}</div></div><div class="hlchips">${chips}</div></div>`;
-  }).join('')||'<div class="note">No practices set an all-time record in their latest reported month.</div>';
+  const hl=state.hl||{rows:[],watch:[]};
+  const chip=(x)=>`<span class="hlchip ${x.dir==='high'?'good':'bad'}">${esc(x.label)} ${x.dir==='high'?'&#9650;':'&#9660;'} ${x.dev>0?'+':''}${Math.round(x.dev*100)}% &middot; ${x.fmt==='pct'?Math.round(x.value)+'%':fmt(x.value,x.fmt)}</span>`;
+  const rowsHTML=hl.rows.map(r=>`<div class="hlrow" data-id="${r.p.id}"><div class="hlname">${esc(r.p.name)}<div class="muted" style="font-weight:400;font-size:11.5px">${esc(r.p.type||'')}${r.p.stt?' &middot; '+esc(r.p.stt):''} &middot; ${fmtMonth(r.ym)}</div></div><div class="hlchips">${r.recs.map(chip).join('')}</div></div>`).join('')||'<div class="note">No practice is 30%+ off the same 3 months last year.</div>';
+  const watchHTML=hl.watch.map(w=>`<div class="hlrow" data-id="${w.p.id}"><div class="hlname" style="min-width:0;width:100%">${esc(w.p.name)}<div class="wreason ${w.tone}" style="font-weight:400">${esc(w.txt)}</div></div></div>`).join('')||'<div class="note">Nothing on the watchlist.</div>';
   const back=document.createElement('div');back.className='hlback';
-  back.innerHTML=`<div class="hlmodal"><button class="hx" aria-label="Close">&times;</button>
-    <h3>Highs &amp; Lows &mdash; records set this month</h3>
-    <div class="note">Practices whose most recent reported month set an all-time high or low. <span style="color:var(--pos)">Green</span> = a good record (a high in production/patients, or a new low in adjustments); <span style="color:var(--neg)">red</span> = a concerning record (a production/patient low, or an adjustments high). Needs at least 12 months of history.</div>
-    ${rows}</div>`;
+  back.innerHTML=`<div class="hlmodal mw"><button class="hx" aria-label="Close">&times;</button>
+    <h3>Highs &amp; lows &middot; watchlist</h3>
+    <div class="note"><b>Highs &amp; lows</b>: the last 3 months are 30%+ above (green) or below (red) the same 3 months a year ago, in Net Production, Net Collections, Patients, New Patients, or Collection Ratio. <b>Watchlist</b>: collection ratio under 95%, adjustment rate over 35% of gross, or data 2+ months overdue. Practices without a full year of history (or missing recent data) are excluded.</div>
+    <div class="mwcols"><div><div class="mwh">Highs &amp; lows &middot; vs same 3 months last year</div>${rowsHTML}</div><div><div class="mwh red">Watchlist</div>${watchHTML}</div></div></div>`;
   document.body.appendChild(back);
   const close=()=>{back.remove();document.removeEventListener('keydown',onKey);};
   function onKey(e){if(e.key==='Escape')close();}
