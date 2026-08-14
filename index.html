@@ -926,14 +926,19 @@ function renderData(){
   const effRows=effKeys.map(k=>{const def=M[k],a=agg(t12,k),b=p12.length?agg(p12,k):null,d=delta(a,b,k==='adjPct');
     return `<tr><td>${def.label}</td><td>${colVal(k,a)}</td><td>${b==null?'<span class="muted">—</span>':colVal(k,b)}</td><td class="${d.cls}">${d.txt}</td></tr>`;}).join('');
   const recent=ms.slice(-13).reverse();
+  const slots=state.isOrtho?[]:activeDocSlots(ms);
   const rawCols=(state.isOrtho?['grossP','netP','netC','appts','newStarts','npExam','txConsult']:['grossP','netP','netC','adj','totPat','newPat','days','hyg']).filter(k=>nzA(ms,k));
+  // recent-months columns, with each active doctor's monthly production inserted right after Net Production
+  const rawSpec=[];
+  rawCols.forEach(k=>{rawSpec.push({label:M[k].label,fmt:M[k].fmt,get:m=>mval(m,k)});
+    if(k==='netP')slots.forEach(n=>rawSpec.push({label:docLabel(n),fmt:'money',get:m=>mval(m,'doc'+n)}));});
+  if(slots.length&&rawCols.indexOf('netP')<0)slots.forEach(n=>rawSpec.push({label:docLabel(n),fmt:'money',get:m=>mval(m,'doc'+n)}));
   const effCols=effKeys;
-  const rawHead=`<tr><th>Month</th>${rawCols.map(k=>`<th>${M[k].label}</th>`).join('')}</tr>`;
-  const rawBody=recent.map(m=>`<tr><td>${fmtMonth(m.ym)}</td>${rawCols.map(k=>`<td>${fmt(mval(m,k),M[k].fmt)}</td>`).join('')}</tr>`).join('');
+  const rawHead=`<tr><th>Month</th>${rawSpec.map(c=>`<th>${esc(c.label)}</th>`).join('')}</tr>`;
+  const rawBody=recent.map(m=>`<tr><td>${fmtMonth(m.ym)}</td>${rawSpec.map(c=>`<td>${fmt(c.get(m),c.fmt)}</td>`).join('')}</tr>`).join('');
   const effHead=`<tr><th>Month</th>${effCols.map(k=>`<th>${M[k].label}</th>`).join('')}</tr>`;
   const effBody=recent.map(m=>`<tr><td>${fmtMonth(m.ym)}</td>${effCols.map(k=>`<td>${colVal(k,mval(m,k))}</td>`).join('')}</tr>`).join('');
-  // ---- providers folded INTO the Totals table: each doctor's production + share of gross ----
-  const slots=state.isOrtho?[]:activeDocSlots(ms);
+  // ---- providers folded INTO the Totals table: each doctor's production + share of gross (slots computed above) ----
   let provTot='';
   if(slots.length){
     const grossT=agg(t12,'grossP'),grossPr=p12.length?agg(p12,'grossP'):null,dash='<span class="muted">—</span>';
