@@ -23,7 +23,7 @@ html[data-theme="dark"]{
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45}
-.wrap{max-width:1180px;margin:0 auto;padding:18px 20px 60px}
+.wrap{max-width:1560px;margin:0 auto;padding:18px 20px 60px}
 
 .top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;margin-bottom:6px}
 .brand{display:flex;align-items:center;gap:10px}
@@ -159,6 +159,13 @@ tbody tr:hover{background:var(--panel-2)}
 .hero .stat.hl.none{cursor:default;opacity:.7}
 .hero .stat.hl.none:hover{border-color:var(--line)}
 .hero .stat.hl.none b{color:var(--ink)}
+.hero .stat.allp{cursor:pointer}
+.hero .stat.allp:hover{border-color:var(--navy)}
+.hero .stat.beh{cursor:pointer}
+.hero .stat.beh:hover{border-color:var(--amber)}
+.hero .stat.beh b{color:var(--amber)}
+.hero .stat.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.hero .stat.on b{color:#fff}
 .hlback{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px;overflow:auto}
 .hlmodal{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:760px;width:100%;padding:20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .hlmodal h3{margin:0 0 6px;font-size:15px;color:var(--ink)}
@@ -204,6 +211,8 @@ tr.prow{cursor:pointer}
 .homebar #homeSearch{flex:1;min-width:200px}
 .homecount{font-size:12px;color:var(--ink-soft);margin-left:auto}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(224px,1fr));gap:14px;margin-top:14px}
+.grouphdr{margin:24px 0 2px;font-size:13px;font-weight:750;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:8px}
+.grouphdr .gcount{font-weight:600;color:var(--ink-soft);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:11px;letter-spacing:0}
 .card{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;position:relative;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;overflow:hidden;min-height:200px;padding:12px}
 .card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--amber);opacity:.7}
 .card:hover{border-color:var(--blue);box-shadow:0 10px 24px rgba(20,30,50,.12);transform:translateY(-2px)}
@@ -313,7 +322,7 @@ const M=Object.assign({},RAW,DERIVED);
 const isDerived=k=>!!DERIVED[k];
 
 const state={practices:[],current:null,rowsRaw:[],locations:[],location:'All',isOrtho:false,
-  screen:'home',hf:{q:'',type:'',stt:'',attn:false},
+  screen:'home',hf:{q:'',type:'',stt:'',attn:false,behind:false},
   pf:{q:'',type:'',stt:'',renewal:'',sortKey:'netP',sortDir:'desc',bdim:'stt',smetric:'grossP'},portfolioRows:null,
   tab:localStorage.getItem(LS+'_tab')||'overview',
   metric:localStorage.getItem(LS+'_metric')||'netP',
@@ -1018,12 +1027,15 @@ function monthsBehind(p){if(!p.latestMonth)return 99;const d=ymNum(expectedDataY
 // attention = >1 month behind on data, an overdue report, or incomplete/flagged data — NOT just "last month not in yet"
 function needsAttention(p){return monthsBehind(p)>=2||/overdue/i.test(p.reportStatus||'')||(p.missing&&p.missing.length>0);}
 function filteredHome(){const hf=state.hf,nq=norm(hf.q);
-  return state.practices.filter(p=>{
+  const list=state.practices.filter(p=>{
     if(hf.type&&p.type!==hf.type)return false;
     if(hf.stt&&p.stt!==hf.stt)return false;
     if(hf.attn&&!needsAttention(p))return false;
+    if(hf.behind&&monthsBehind(p)<1)return false;
     if(nq&&!(norm(p.name).includes(nq)||norm(p.uid).includes(nq)||norm(p.type).includes(nq)||norm(p.stt).includes(nq)||norm(p.owner).includes(nq)))return false;
-    return true;});}
+    return true;});
+  if(hf.behind)list.sort((a,b)=>monthsBehind(b)-monthsBehind(a)||a.name.localeCompare(b.name));
+  return list;}
 function cardHTML(p){
   const behind=monthsBehind(p),rs=p.reportStatus||'';
   const badges=[`<span class="b ${behind>=2?'warn':(p.latestMonth?'ok':'warn')}">${p.latestMonth?'Data: '+fmtMonth(p.latestMonth):'No data'}</span>`];
@@ -1052,8 +1064,21 @@ function tuneLogoPlates(){
     }catch(e){}};
     if(img.complete&&img.naturalWidth)apply();else img.addEventListener('load',apply,{once:true});
   });}
+function homeListHTML(list){
+  if(!list.length)return '<div class="note">No practices match.</div>';
+  if(!state.hf.behind)return `<div class="cards">${list.map(cardHTML).join('')}</div>`;
+  // Awaiting-data view: group into sections by months missing (list is pre-sorted worst-first).
+  const groups=[],idx={};
+  list.forEach(p=>{const nd=!p.latestMonth;const key=nd?'none':monthsBehind(p);
+    if(!(key in idx)){idx[key]=groups.length;groups.push({mb:nd?Infinity:monthsBehind(p),items:[]});}
+    groups[idx[key]].items.push(p);});
+  groups.sort((a,b)=>b.mb-a.mb);
+  return groups.map(g=>{
+    const hdr=(g.mb===Infinity)?'No data on file':`${g.mb} month${g.mb>1?'s':''} missing`;
+    return `<div class="grouphdr">${hdr} <span class="gcount">${g.items.length}</span></div><div class="cards">${g.items.map(cardHTML).join('')}</div>`;
+  }).join('');}
 function renderHomeCards(){const list=filteredHome();
-  document.querySelector('#home .cards').innerHTML=list.map(cardHTML).join('')||'<div class="note">No practices match.</div>';
+  document.querySelector('#home #homeList').innerHTML=homeListHTML(list);
   document.querySelector('#home .homecount').textContent=`${list.length} of ${state.practices.length}`;
   bindCards();tuneLogoPlates();}
 function renderHome(){
@@ -1062,11 +1087,13 @@ function renderHome(){
   const states=[...new Set(state.practices.map(p=>p.stt).filter(Boolean))].sort();
   const list=filteredHome();
   const attn=state.practices.filter(needsAttention).length;
+  const behind=state.practices.filter(p=>monthsBehind(p)>=1).length;
   el.innerHTML=`<div class="hero">
       <h2>Practices</h2>
       <p>Open a practice to dive into its performance, trends, and forecast — or scan the book for anything that needs attention.</p>
-      <div class="stats"><span class="stat"><b>${state.practices.length}</b> practices</span>
-        <span class="stat attn" id="attnStat" title="More than a month behind on data, an overdue report, or incomplete data — not just waiting on last month."><b>${attn}</b> need attention</span>
+      <div class="stats"><span class="stat allp" id="allStat" title="Show all practices (clear filters)"><b>${state.practices.length}</b> practices</span>
+        <span class="stat beh${hf.behind?' on':''}" id="behStat" title="Awaiting last month's data — click to show only these, most overdue first"><b>${behind}</b> awaiting data</span>
+        <span class="stat attn${hf.attn?' on':''}" id="attnStat" title="More than a month behind on data, an overdue report, or incomplete data — not just waiting on last month."><b>${attn}</b> need attention</span>
         <span class="stat hl none" id="hlStat" title="Loading records…">Highs / Lows…</span>
         <button class="pfbtn" id="toPortfolio">View portfolio →</button></div>
     </div>
@@ -1075,14 +1102,18 @@ function renderHome(){
       <select id="fType"><option value="">All types</option>${types.map(t=>`<option value="${esc(t)}"${hf.type===t?' selected':''}>${esc(t)}</option>`).join('')}</select>
       <select id="fState"><option value="">All states</option>${states.map(s=>`<option value="${esc(s)}"${hf.stt===s?' selected':''}>${esc(s)}</option>`).join('')}</select>
       <label class="chk"><input type="checkbox" id="fAttn" ${hf.attn?'checked':''}> Needs attention</label>
+      <label class="chk"><input type="checkbox" id="fBehind" ${hf.behind?'checked':''}> Awaiting data</label>
       <span class="homecount">${list.length} of ${state.practices.length}</span>
     </div>
-    <div class="cards">${list.map(cardHTML).join('')||'<div class="note">No practices match.</div>'}</div>`;
+    <div id="homeList">${homeListHTML(list)}</div>`;
   const si=document.getElementById('homeSearch');si.oninput=e=>{hf.q=e.target.value;renderHomeCards();};
   document.getElementById('fType').onchange=e=>{hf.type=e.target.value;renderHomeCards();};
   document.getElementById('fState').onchange=e=>{hf.stt=e.target.value;renderHomeCards();};
-  document.getElementById('fAttn').onchange=e=>{hf.attn=e.target.checked;renderHomeCards();};
+  document.getElementById('fAttn').onchange=e=>{hf.attn=e.target.checked;renderHome();};
+  const fb=document.getElementById('fBehind');if(fb)fb.onchange=e=>{hf.behind=e.target.checked;renderHome();};
   const as=document.getElementById('attnStat');if(as)as.onclick=()=>{hf.attn=!hf.attn;renderHome();};
+  const bs=document.getElementById('behStat');if(bs)bs.onclick=()=>{hf.behind=!hf.behind;renderHome();};
+  const alls=document.getElementById('allStat');if(alls)alls.onclick=()=>{Object.assign(hf,{q:'',type:'',stt:'',attn:false,behind:false});renderHome();};
   const tp=document.getElementById('toPortfolio');if(tp)tp.onclick=openPortfolio;
   ensureHighsLows();
   bindCards();}
