@@ -306,6 +306,28 @@ html[data-theme="dark"] .card .logowrap{background:#e9edf2;border-color:#cfd6e0}
 .readnote{background:rgba(224,123,42,.08);border:1px solid rgba(224,123,42,.25);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--ink-soft);margin-top:10px}
 .readnote b{color:var(--amber)}
 .loginbox .loginlogo{display:block;width:260px;max-width:82%;height:auto;margin:2px auto 16px}
+
+.pdetail{display:flex;gap:16px;align-items:flex-start}
+.plist{width:236px;flex:none;position:sticky;top:64px;max-height:calc(100vh - 88px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px}
+.plist .psearch{position:sticky;top:0;background:var(--panel);padding-bottom:6px;z-index:1}
+.plist .psearch input{width:100%;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--ink);font-size:12.5px;padding:0 10px}
+.plist .pli{padding:8px 10px;border-radius:8px;cursor:pointer;border-left:3px solid transparent;display:flex;flex-direction:column;gap:1px}
+.plist .pli:hover{background:var(--panel-2)}
+.plist .pli.on{background:var(--panel-2);border-left-color:var(--amber)}
+.plist .pli .plnm{font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.2}
+.plist .pli .plmeta{font-size:10.5px;color:var(--ink-soft)}
+.pmain{flex:1;min-width:0}
+@media(max-width:900px){.pdetail{flex-direction:column}.plist{width:auto;position:static;max-height:230px}}
+.pfdot{cursor:pointer}
+.dottip{font-size:12px;color:var(--ink-soft);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-top:8px}
+
+.kpi.dhcard{cursor:pointer;transition:border-color .12s,transform .12s}
+.kpi.dhcard:hover{border-color:var(--amber);transform:translateY(-1px)}
+.dhdetail{margin-bottom:16px}
+
+.dhkey{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-top:12px;padding:8px 12px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;font-size:12px;color:var(--ink-soft)}
+.dhkey b{color:var(--ink);margin-right:2px}
+.dhkey .dhdot{width:9px;height:9px}
 </style>
 </head>
 <body>
@@ -401,7 +423,7 @@ const M=Object.assign({},RAW,DERIVED);
 const isDerived=k=>!!DERIVED[k];
 
 const state={practices:[],current:null,rowsRaw:[],locations:[],location:'All',isOrtho:false,
-  screen:'home',hf:{q:'',type:'',stt:'',attn:false,behind:false},
+  screen:'home',plq:'',hf:{q:'',type:'',stt:'',attn:false,behind:false},
   pf:{q:'',type:'',stt:'',renewal:'',sortKey:'netP',sortDir:'desc',bdim:'stt',smetric:'grossP',distMetric:'grossP'},portfolioRows:null,
   tab:localStorage.getItem(LS+'_tab')||'overview',
   metric:localStorage.getItem(LS+'_metric')||'netP',
@@ -594,6 +616,12 @@ function metricKeys(){return Object.keys(M).filter(k=>{const d=M[k];
   if(state.isOrtho&&['hyg','hygPct','grossPerPat','netPerPat','patsPerDay','collRatio','newPatPct'].includes(k))return false;
   return true;});}
 
+function stageListItemsHTML(){var q=norm(state.plq||'');var list=state.practices.filter(function(p){return !q||norm(p.name).indexOf(q)>=0||norm(p.uid||'').indexOf(q)>=0;}).slice().sort(function(a,b){return a.name<b.name?-1:(a.name>b.name?1:0);});
+  if(!list.length)return '<div class="note" style="padding:8px">No matches.</div>';
+  return list.map(function(p){return '<div class="pli'+(state.current&&p.id===state.current.id?' on':'')+'" data-id="'+p.id+'"><span class="plnm">'+esc(p.name)+'</span><span class="plmeta">'+esc(p.type||'')+(p.stt?' \u00b7 '+esc(p.stt):'')+'</span></div>';}).join('');}
+function stageListHTML(){return '<div class="psearch"><input id="plSearch" type="text" placeholder="Filter practices\u2026" value="'+esc(state.plq||'')+'"></div><div class="pliwrap">'+stageListItemsHTML()+'</div>';}
+function bindPliClicks(){document.querySelectorAll('#plist .pli[data-id]').forEach(function(el){el.onclick=function(){pick(el.dataset.id);};});}
+function bindStageList(){var s=document.getElementById('plSearch');if(s)s.oninput=function(){state.plq=s.value;var w=document.querySelector('#plist .pliwrap');if(w){w.innerHTML=stageListItemsHTML();bindPliClicks();}};bindPliClicks();}
 /* ---------- shell ---------- */
 function renderShell(){
   const p=state.current, ms=months(), latest=ms[ms.length-1];
@@ -612,6 +640,7 @@ function renderShell(){
   tabs.push(['insights','Insights']);
   tabs.push(['swot','SWOT']);
   document.getElementById('stage').innerHTML=`
+    <div class="pdetail"><aside class="plist" id="plist">${stageListHTML()}</aside><div class="pmain">
     <div class="phead">
       <span class="name">${esc(p.name)}</span>
       ${p.type?`<span class="chip">${esc(p.type)}</span>`:''}
@@ -628,7 +657,9 @@ function renderShell(){
     <div id="v-insights" class="view${state.tab==='insights'?' active':''}"></div>
     <div id="v-forecast" class="view${state.tab==='forecast'?' active':''}"></div>
     <div id="v-data" class="view${state.tab==='data'?' active':''}"></div>
-    <div id="v-swot" class="view${state.tab==='swot'?' active':''}"></div>`;
+    <div id="v-swot" class="view${state.tab==='swot'?' active':''}"></div>
+    </div></div>`;
+  bindStageList();
   document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{state.tab=t.dataset.tab;localStorage.setItem(LS+'_tab',state.tab);renderShell();});
   const lsl=document.getElementById('locsel');if(lsl)lsl.onchange=()=>{state.location=lsl.value;renderShell();};
   destroyCharts();
@@ -1387,9 +1418,9 @@ function renderPortfolioBody(){
     return true;});
   const withData=rows.filter(r=>r.ym);
   const sum=k=>withData.reduce((a,r)=>a+(r[k]||0),0);
-  const tNetP=sum('netP'),tNetC=sum('netC'),tPat=sum('totPat'),tNew=sum('newPat'),tDays=sum('days');
-  const blend=tNetP?tNetC/tNetP*100:null,npd=tDays?tNetP/tDays:null;
-  const cards=[['Net Production',fmt(tNetP,'money'),''],['Net Collections',fmt(tNetC,'money'),''],['Collection Ratio',fmt(blend,'pct'),crColor('collRatio',blend)],['Net Prod / Day',fmt(npd,'money'),''],['Total Patients',fmt(tPat,'int'),''],['New Patients',fmt(tNew,'int'),'']];
+  const tNetP=sum('netP'),tNetC=sum('netC'),tPat=sum('totPat'),tNew=sum('newPat'),tDays=sum('days'),tAdj=sum('adj'),tGrossP=sum('grossP');
+  const blend=tNetP?tNetC/tNetP*100:null,npd=tDays?tNetP/tDays:null,adjRate=tGrossP?tAdj/tGrossP*100:null;
+  const cards=[['Net Production',fmt(tNetP,'money'),''],['Net Collections',fmt(tNetC,'money'),''],['Collection Ratio',fmt(blend,'pct'),crColor('collRatio',blend)],['Adjustment Rate',fmt(adjRate,'pct'),''],['Total Patients',fmt(tPat,'int'),''],['New Patients',fmt(tNew,'int'),'']];
   document.getElementById('pfSummary').innerHTML=cards.map(c=>`<div class="kpi"><div class="lab">${c[0]}</div><div class="val" style="${c[2]?'color:'+c[2]:''}">${c[1]}</div></div>`).join('');
   document.getElementById('pfCount').textContent=`${withData.length} of ${rows.length} reporting`;
   const {sortKey,sortDir}=pf;
@@ -1452,6 +1483,24 @@ function dhMilestone(p){var ri=MONTHS.indexOf((p.renewal||'').slice(0,3));if(ri<
 function dhReady(p){return (p.dataStatus==='Current'&&!(p.missing&&p.missing.length))?'ready':'waiting';}
 function dhIssue(p){var out=[];var mb=monthsBehind(p);if(!p.latestMonth)out.push('No data on file');else if(mb>=2)out.push(mb+' months behind');else if(mb===1)out.push('1 month behind');if(p.missing&&p.missing.length)out.push('Missing: '+p.missing.join(', '));if(/overdue/i.test(p.reportStatus))out.push('Report overdue');return out.join(' · ')||'—';}
 function dhList(arr){if(!arr.length)return '<div class="muted" style="padding:8px 2px">None due</div>';return arr.map(function(p){var rd=dhReady(p);var col=rd==='ready'?'#22a05a':'#e0902c';return '<div class="dhrow" data-id="'+p.id+'"><span class="dhdot" style="background:'+col+'"></span><span class="dhnm">'+esc(p.name)+'</span><span class="dhmeta">'+(p.latestMonth?fmtMonth(p.latestMonth):'no data')+'</span></div>';}).join('');}
+function renderDhBucket(b){
+  var host=document.getElementById('dhDetail');if(!host)return;
+  var g=(state.dhGroups||{})[b]||[];
+  var titles={current:'Practices with current data',awaiting:'Practices awaiting data',incomplete:'Practices with incomplete data',due:'Reports due this month'};
+  var rows=g.length?g.slice().sort(function(a,c){return monthsBehind(c)-monthsBehind(a);}).map(function(p){
+    var detail='';
+    if(b==='incomplete')detail=(p.missing&&p.missing.length)?('Missing: '+esc(p.missing.join(', '))):'\u2014';
+    else if(b==='due'){var ms=dhMilestone(p);var rd=dhReady(p);detail=(ms?ms+'-month report':'report')+' \u00b7 '+(rd==='ready'?'ready to produce':'waiting on data');}
+    else if(b==='awaiting'){var mb=monthsBehind(p);detail=!p.latestMonth?'No data on file':(mb+' month'+(mb>1?'s':'')+' behind');}
+    else detail='Data through '+(p.latestMonth?fmtMonth(p.latestMonth):'\u2014');
+    return '<tr class="prow" data-id="'+p.id+'"><td>'+esc(p.name)+'</td><td class="muted">'+esc(p.type||'')+' \u00b7 '+esc(p.stt||'')+'</td><td>'+detail+'</td></tr>';
+  }).join(''):'<tr><td colspan="3" class="muted">None.</td></tr>';
+  host.innerHTML='<div class="panel"><div class="ovhd"><h3>'+titles[b]+' <span style="font-weight:600;color:var(--ink-soft);font-size:12px;text-transform:none;letter-spacing:0">'+g.length+'</span></h3><span id="dhClose" style="cursor:pointer;color:var(--ink-soft);font-size:12px">Close \u2715</span></div><div class="tw"><table><tbody>'+rows+'</tbody></table></div></div>';
+  host.style.display='block';
+  host.querySelectorAll('tr.prow[data-id]').forEach(function(r){r.onclick=function(){pick(r.dataset.id);};});
+  var cl=document.getElementById('dhClose');if(cl)cl.onclick=function(){host.style.display='none';};
+  try{host.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(e){}
+}
 function renderDataHealth(){
   var el=document.getElementById('dataHealth');if(!el)return;
   var ps=state.practices.filter(function(p){return !p.trackOnly;});
@@ -1461,6 +1510,7 @@ function renderDataHealth(){
   var incomplete=ps.filter(function(p){return p.missing&&p.missing.length;}).length;
   var dueThis=ps.filter(function(p){return p.reportDue||/due this month/i.test(p.reportStatus);});
   var sent=ps.filter(function(p){return /sent/i.test(p.reportStatus);}).length;
+  state.dhGroups={current:ps.filter(function(p){return p.dataStatus==="Current";}),awaiting:ps.filter(function(p){return p.dataStatus!=="Current";}),incomplete:ps.filter(function(p){return p.missing&&p.missing.length;}),due:dueThis};
   var pct=n?Math.round(current/n*100):0;
   var fb={cur:0,one:0,two:0,none:0};
   ps.forEach(function(p){if(!p.latestMonth){fb.none++;return;}var mb=monthsBehind(p);if(mb<=0)fb.cur++;else if(mb===1)fb.one++;else fb.two++;});
@@ -1469,10 +1519,10 @@ function renderDataHealth(){
   var attn=ps.filter(needsAttention).sort(function(a,b){return monthsBehind(b)-monthsBehind(a);});
   function frow(lab,v,col){var w=n?Math.round(v/n*100):0;return '<div class="frow"><span class="flab">'+lab+'</span><span class="fbar" style="background-image:linear-gradient(90deg,'+col+' '+w+'%,transparent '+w+'%)"></span><span class="fval">'+v+'</span></div>';}
   var cards='<div class="kgrid" style="margin-bottom:16px">'+
-    '<div class="kpi"><div class="lab">Data current</div><div class="val">'+pct+'%</div><div class="deltas"><span class="muted">'+current+' of '+n+' practices</span></div></div>'+
-    '<div class="kpi"><div class="lab">Awaiting data</div><div class="val" style="color:'+(awaiting?'var(--amber)':'var(--navy)')+'">'+awaiting+'</div><div class="deltas"><span class="muted">behind or no data</span></div></div>'+
-    '<div class="kpi"><div class="lab">Incomplete</div><div class="val" style="color:'+(incomplete?'var(--neg)':'var(--navy)')+'">'+incomplete+'</div><div class="deltas"><span class="muted">missing line items</span></div></div>'+
-    '<div class="kpi"><div class="lab">Reports due this month</div><div class="val">'+dueThis.length+'<span style="font-size:13px;color:var(--ink-soft);font-weight:600"> · '+sent+' sent</span></div><div class="deltas"><span class="muted">calendar-driven</span></div></div>'+
+    '<div class="kpi dhcard" data-b="current" title="Click to view the practices"><div class="lab">Data current</div><div class="val">'+pct+'%</div><div class="deltas"><span class="muted">'+current+' of '+n+' practices</span></div></div>'+
+    '<div class="kpi dhcard" data-b="awaiting" title="Click to view the practices"><div class="lab">Awaiting data</div><div class="val" style="color:'+(awaiting?'var(--amber)':'var(--navy)')+'">'+awaiting+'</div><div class="deltas"><span class="muted">behind or no data</span></div></div>'+
+    '<div class="kpi dhcard" data-b="incomplete" title="Click to view the practices"><div class="lab">Incomplete</div><div class="val" style="color:'+(incomplete?'var(--neg)':'var(--navy)')+'">'+incomplete+'</div><div class="deltas"><span class="muted">missing line items</span></div></div>'+
+    '<div class="kpi dhcard" data-b="due" title="Click to view the practices"><div class="lab">Reports due this month</div><div class="val">'+dueThis.length+'<span style="font-size:13px;color:var(--ink-soft);font-weight:600"> · '+sent+' sent</span></div><div class="deltas"><span class="muted">calendar-driven</span></div></div>'+
     '</div>';
   var milestones='<div class="panel"><h3>Report milestones due this month</h3>'+
     '<div class="dhmset">'+
@@ -1480,15 +1530,16 @@ function renderDataHealth(){
       '<div class="dhcol"><div class="dhhd">6-month <span class="cnt">'+mil[6].length+'</span></div>'+dhList(mil[6])+'</div>'+
       '<div class="dhcol"><div class="dhhd">9-month <span class="cnt">'+mil[9].length+'</span></div>'+dhList(mil[9])+'</div>'+
     '</div>'+
-    '<div class="note" style="margin-top:10px"><span class="dhdot" style="background:#22a05a;margin-right:5px"></span>data current, ready to produce &nbsp;&nbsp;<span class="dhdot" style="background:#e0902c;margin-right:5px"></span>waiting on data</div></div>';
+    '<div class="dhkey"><b>Dot key</b> <span class="dhdot" style="background:#22a05a;margin:0 5px 0 10px"></span>green = data current, ready to produce <span class="dhdot" style="background:#e0902c;margin:0 5px 0 16px"></span>amber = report is due but still waiting on data</div></div>';
   var fresh='<div class="panel"><h3>Data freshness</h3><div class="fresh">'+
     frow('Current',fb.cur,'#22a05a')+frow('1 month behind',fb.one,'var(--sky)')+frow('2+ months behind',fb.two,'#e0902c')+frow('No data on file',fb.none,'#c0392b')+
     '</div></div>';
   var attnRows=attn.length?attn.map(function(p){return '<tr class="prow" data-id="'+p.id+'"><td>'+esc(p.name)+'</td><td class="muted">'+esc(p.type||'')+' · '+esc(p.stt||'')+'</td><td>'+dhIssue(p)+'</td><td class="muted">'+(p.latestMonth?fmtMonth(p.latestMonth):'—')+'</td><td class="muted">'+esc(p.reportStatus||'—')+'</td></tr>';}).join(''):'<tr><td colspan="5" class="muted">Nothing needs attention. Everything is current.</td></tr>';
   var attntbl='<div class="panel"><h3>Needs attention <span style="font-weight:600;color:var(--ink-soft);font-size:12px;text-transform:none;letter-spacing:0">'+attn.length+'</span></h3><div class="tw"><table><thead><tr><th>Practice</th><th>Type / State</th><th>Issue</th><th>Latest data</th><th>Report status</th></tr></thead><tbody>'+attnRows+'</tbody></table></div></div>';
-  el.innerHTML='<div class="hero"><h2>Data Health</h2><p>Where the book stands on data currency and reporting. Report milestones are calendar-driven and independent of data currency, the dot shows whether each is ready to produce.</p></div>'+cards+milestones+'<div class="ovsplit">'+attntbl+fresh+'</div>';
+  el.innerHTML='<div class="hero"><h2>Data Health</h2><p>Where the book stands on data currency and reporting. Report milestones are calendar-driven and independent of data currency, the dot shows whether each is ready to produce.</p></div>'+cards+'<div id="dhDetail" class="dhdetail" style="display:none"></div>'+milestones+'<div class="ovsplit">'+attntbl+fresh+'</div>';
   el.querySelectorAll('.dhrow[data-id]').forEach(function(r){r.onclick=function(){pick(r.dataset.id);};});
   el.querySelectorAll('tr.prow[data-id]').forEach(function(r){r.onclick=function(){pick(r.dataset.id);};});
+  el.querySelectorAll('.dhcard[data-b]').forEach(function(c){c.onclick=function(){renderDhBucket(c.getAttribute('data-b'));};});
 }
 
 /* ---------- portfolio: distribution, movers, region ---------- */
@@ -1512,24 +1563,34 @@ function renderPfDist(cohort){
   var host=document.getElementById('pfDist');if(!host)return;
   var mk=state.pf.distMetric||'grossP';var def=DIST.find(function(d){return d.k===mk;})||DIST[0];
   var seg=DIST.map(function(d){return '<option value="'+d.k+'"'+(d.k===mk?' selected':'')+'>'+d.label+'</option>';}).join('');
+  var ctrl='<label class="ovsel">Metric <select id="pfDistSel">'+seg+'</select></label>';
   var pairs=cohort.map(function(r){return {r:r,v:def.get(r)};}).filter(function(x){return x.v!=null&&!isNaN(x.v);});
-  if(pairs.length<4){host.innerHTML='<div class="panel"><div class="ovhd"><h3>Where each practice lands</h3><label class="ovsel">Metric <select id="pfDistSel">'+seg+'</select></label></div><div class="note">Not enough reporting practices in this filter to show a distribution.</div></div>';bindDistSeg();return;}
-  var vals=pairs.map(function(x){return x.v;}).slice().sort(function(a,b){return a-b;});
-  var mn=vals[0],mx=vals[vals.length-1],q1=quantile(vals,.25),md=quantile(vals,.5),q3=quantile(vals,.75);
-  var W=900,L=40,R=860,T=30,B=100;
-  var xOf=function(v){return mx<=mn?L:L+(v-mn)/(mx-mn)*(R-L);};
-  var third=vals[vals.length-3];
-  var bands='<rect x="'+L+'" y="'+T+'" width="'+(xOf(q1)-L)+'" height="'+(B-T)+'" fill="rgba(31,56,100,.05)"/>'+
-    '<rect x="'+xOf(q1)+'" y="'+T+'" width="'+(xOf(md)-xOf(q1))+'" height="'+(B-T)+'" fill="rgba(31,56,100,.09)"/>'+
-    '<rect x="'+xOf(md)+'" y="'+T+'" width="'+(xOf(q3)-xOf(md))+'" height="'+(B-T)+'" fill="rgba(74,144,217,.12)"/>'+
-    '<rect x="'+xOf(q3)+'" y="'+T+'" width="'+(R-xOf(q3))+'" height="'+(B-T)+'" fill="rgba(74,144,217,.20)"/>';
-  var med='<line x1="'+xOf(md)+'" y1="'+(T-4)+'" x2="'+xOf(md)+'" y2="'+(B+8)+'" stroke="var(--navy)" stroke-width="1.4" stroke-dasharray="4 3"/><text x="'+xOf(md)+'" y="'+(B+22)+'" font-size="10" fill="var(--navy)" text-anchor="middle">Median '+distFmt(md,def.fmt)+'</text>';
-  var axis='<line x1="'+L+'" y1="'+B+'" x2="'+R+'" y2="'+B+'" stroke="var(--line)" stroke-width="1"/><text x="'+L+'" y="'+(B+40)+'" font-size="10" fill="var(--ink-soft)">'+distFmt(mn,def.fmt)+'</text><text x="'+R+'" y="'+(B+40)+'" font-size="10" fill="var(--ink-soft)" text-anchor="end">'+distFmt(mx,def.fmt)+'</text>';
-  var dots=pairs.slice().sort(function(a,b){return a.v-b.v;}).map(function(x,i){var top=x.v>=third;var cx=xOf(x.v);var cy=T+12+((i%6)*11);var col=top?'var(--amber)':'#7f92ad';var rr=top?6:5;return '<circle cx="'+cx+'" cy="'+cy+'" r="'+rr+'" fill="'+col+'" fill-opacity="'+(top?1:.85)+'"'+(top?' stroke="var(--panel)" stroke-width="1.5"':'')+'><title>'+esc(x.r.p.name)+' — '+distFmt(x.v,def.fmt)+'</title></circle>';}).join('');
-  var svg='<svg viewBox="0 0 900 150" width="100%" style="display:block">'+bands+med+axis+dots+'</svg>';
-  var note='<div class="readnote"><b>Read this:</b> half the book sits between '+distFmt(q1,def.fmt)+' and '+distFmt(q3,def.fmt)+'. Practices past the median line are in the top half; the orange dots are the top 3.</div>';
-  host.innerHTML='<div class="panel"><div class="ovhd"><h3>Where each practice lands</h3><label class="ovsel">Metric <select id="pfDistSel">'+seg+'</select></label></div><div class="ovsel" style="margin-bottom:6px">Each reporting practice on one axis (trailing 12 months). Bands are quartiles; the dashed line is the median.</div>'+svg+note+'</div>';
+  if(pairs.length<4){host.innerHTML='<div class="panel"><div class="ovhd"><h3>Where each practice lands</h3>'+ctrl+'</div><div class="note">Not enough reporting practices in this filter to show a distribution.</div></div>';bindDistSeg();return;}
+  pairs.sort(function(a,b){return a.v-b.v;});
+  var n=pairs.length;var vals=pairs.map(function(x){return x.v;});
+  var q1=quantile(vals,.25),md=quantile(vals,.5),q3=quantile(vals,.75),mn=vals[0],mx=vals[n-1];
+  var L=44,R=856,T=30,B=104;
+  var xAt=function(frac){return L+frac*(R-L);};var xOfIdx=function(i){return xAt((i+0.5)/n);};
+  var bands='<rect x="'+xAt(0)+'" y="'+T+'" width="'+(xAt(.25)-xAt(0))+'" height="'+(B-T)+'" fill="rgba(31,56,100,.05)"/>'+
+    '<rect x="'+xAt(.25)+'" y="'+T+'" width="'+(xAt(.5)-xAt(.25))+'" height="'+(B-T)+'" fill="rgba(31,56,100,.09)"/>'+
+    '<rect x="'+xAt(.5)+'" y="'+T+'" width="'+(xAt(.75)-xAt(.5))+'" height="'+(B-T)+'" fill="rgba(74,144,217,.12)"/>'+
+    '<rect x="'+xAt(.75)+'" y="'+T+'" width="'+(xAt(1)-xAt(.75))+'" height="'+(B-T)+'" fill="rgba(74,144,217,.20)"/>';
+  var qlab='<text x="'+xAt(.125)+'" y="'+(T-8)+'" font-size="9.5" fill="var(--ink-soft)" text-anchor="middle">Bottom 25%</text><text x="'+xAt(.875)+'" y="'+(T-8)+'" font-size="9.5" fill="var(--navy)" font-weight="700" text-anchor="middle">Top 25%</text>';
+  var med='<line x1="'+xAt(.5)+'" y1="'+(T-4)+'" x2="'+xAt(.5)+'" y2="'+(B+8)+'" stroke="var(--navy)" stroke-width="1.4" stroke-dasharray="4 3"/><text x="'+xAt(.5)+'" y="'+(B+24)+'" font-size="10" fill="var(--navy)" font-weight="600" text-anchor="middle">Median '+distFmt(md,def.fmt)+'</text>';
+  var ticks='<text x="'+xAt(.25)+'" y="'+(B+24)+'" font-size="9.5" fill="var(--ink-soft)" text-anchor="middle">'+distFmt(q1,def.fmt)+'</text><text x="'+xAt(.75)+'" y="'+(B+24)+'" font-size="9.5" fill="var(--ink-soft)" text-anchor="middle">'+distFmt(q3,def.fmt)+'</text>';
+  var axis='<line x1="'+L+'" y1="'+B+'" x2="'+R+'" y2="'+B+'" stroke="var(--line)" stroke-width="1"/><text x="'+L+'" y="'+(B+42)+'" font-size="9.5" fill="var(--ink-soft)">'+distFmt(mn,def.fmt)+' (low)</text><text x="'+R+'" y="'+(B+42)+'" font-size="9.5" fill="var(--ink-soft)" text-anchor="end">'+distFmt(mx,def.fmt)+' (high)</text>';
+  var third=vals[n-3];
+  var dots=pairs.map(function(x,i){var top=x.v>=third;var cx=xOfIdx(i);var cy=T+14+((i%6)*12);var col=top?'var(--amber)':'#7f92ad';var rr=top?6:5;return '<circle class="pfdot" cx="'+cx+'" cy="'+cy+'" r="'+rr+'" fill="'+col+'" fill-opacity="'+(top?1:.85)+'"'+(top?' stroke="var(--panel)" stroke-width="1.5"':'')+' data-id="'+x.r.p.id+'" data-name="'+esc(x.r.p.name)+'" data-val="'+distFmt(x.v,def.fmt)+'"><title>'+esc(x.r.p.name)+' — '+distFmt(x.v,def.fmt)+'</title></circle>';}).join('');
+  var svg='<svg viewBox="0 0 900 156" width="100%" style="display:block">'+bands+qlab+med+ticks+axis+dots+'</svg>';
+  var note='<div class="readnote"><b>Read this:</b> practices are ranked left (lowest) to right (highest), so the dashed line always marks the middle of the book. Half sit between '+distFmt(q1,def.fmt)+' and '+distFmt(q3,def.fmt)+'; the orange dots are the top 3. Hover or tap a dot for the practice and its value.</div>';
+  host.innerHTML='<div class="panel"><div class="ovhd"><h3>Where each practice lands</h3>'+ctrl+'</div><div class="ovsel" style="margin-bottom:6px">Every reporting practice ranked on the chosen metric (trailing 12 months). Bands are quartiles.</div>'+svg+'<div id="pfDotTip" class="dottip">Hover a dot to see the practice.</div>'+note+'</div>';
   bindDistSeg();
+  var tip=document.getElementById('pfDotTip');
+  host.querySelectorAll('.pfdot').forEach(function(d){
+    d.addEventListener('mouseenter',function(){if(tip)tip.textContent=d.getAttribute('data-name')+' · '+d.getAttribute('data-val');});
+    d.addEventListener('mouseleave',function(){if(tip)tip.textContent='Hover a dot to see the practice.';});
+    d.addEventListener('click',function(){var id=d.getAttribute('data-id');if(id)pick(id);});
+  });
 }
 function bindDistSeg(){var s=document.getElementById('pfDistSel');if(!s)return;s.onchange=function(){state.pf.distMetric=s.value;renderPortfolioBody();};}
 function pfYoY(r){var h=(state.portfolioHist||{})[r.p.id];if(!h)return null;var yms=Object.keys(h).sort();if(yms.length<13)return null;var t=yms.slice(-12),pv=yms.slice(-24,-12);if(!pv.length)return null;var s=function(arr){return arr.reduce(function(a,k){return a+(h[k].grossP||0);},0);};var cur=s(t),prv=s(pv);if(!prv)return null;return (cur-prv)/prv*100;}
