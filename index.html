@@ -328,6 +328,9 @@ html[data-theme="dark"] .card .logowrap{background:#e9edf2;border-color:#cfd6e0}
 .dhkey{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-top:12px;padding:8px 12px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;font-size:12px;color:var(--ink-soft)}
 .dhkey b{color:var(--ink);margin-right:2px}
 .dhkey .dhdot{width:9px;height:9px}
+
+.dhcheck{width:14px;height:14px;border-radius:50%;background:var(--sky);color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.dhrow.sent{opacity:.62}
 </style>
 </head>
 <body>
@@ -1480,9 +1483,9 @@ function renderPfInsights(cohort){
 
 /* ---------- data health ---------- */
 function dhMilestone(p){var ri=MONTHS.indexOf((p.renewal||'').slice(0,3));if(ri<0)return 0;var cm=new Date().getMonth();var diff=((cm-ri)%12+12)%12;return (diff===3||diff===6||diff===9)?diff:0;}
-function dhReady(p){return (p.dataStatus==='Current'&&!(p.missing&&p.missing.length))?'ready':'waiting';}
+function dhReady(p){if(/sent/i.test(p.reportStatus||''))return 'sent';return (p.dataStatus==='Current'&&!(p.missing&&p.missing.length))?'ready':'waiting';}
 function dhIssue(p){var out=[];var mb=monthsBehind(p);if(!p.latestMonth)out.push('No data on file');else if(mb>=2)out.push(mb+' months behind');else if(mb===1)out.push('1 month behind');if(p.missing&&p.missing.length)out.push('Missing: '+p.missing.join(', '));if(/overdue/i.test(p.reportStatus))out.push('Report overdue');return out.join(' · ')||'—';}
-function dhList(arr){if(!arr.length)return '<div class="muted" style="padding:8px 2px">None due</div>';return arr.map(function(p){var rd=dhReady(p);var col=rd==='ready'?'#22a05a':'#e0902c';return '<div class="dhrow" data-id="'+p.id+'"><span class="dhdot" style="background:'+col+'"></span><span class="dhnm">'+esc(p.name)+'</span><span class="dhmeta">'+(p.latestMonth?fmtMonth(p.latestMonth):'no data')+'</span></div>';}).join('');}
+function dhList(arr){if(!arr.length)return '<div class="muted" style="padding:8px 2px">None due</div>';return arr.map(function(p){var rd=dhReady(p);var mark=rd==='sent'?'<span class="dhcheck">\u2713</span>':'<span class="dhdot" style="background:'+(rd==='ready'?'#22a05a':'#e0902c')+'"></span>';var meta=rd==='sent'?'sent':(p.latestMonth?fmtMonth(p.latestMonth):'no data');return '<div class="dhrow'+(rd==='sent'?' sent':'')+'" data-id="'+p.id+'">'+mark+'<span class="dhnm">'+esc(p.name)+'</span><span class="dhmeta">'+meta+'</span></div>';}).join('');}
 function renderDhBucket(b){
   var host=document.getElementById('dhDetail');if(!host)return;
   var g=(state.dhGroups||{})[b]||[];
@@ -1490,7 +1493,7 @@ function renderDhBucket(b){
   var rows=g.length?g.slice().sort(function(a,c){return monthsBehind(c)-monthsBehind(a);}).map(function(p){
     var detail='';
     if(b==='incomplete')detail=(p.missing&&p.missing.length)?('Missing: '+esc(p.missing.join(', '))):'\u2014';
-    else if(b==='due'){var ms=dhMilestone(p);var rd=dhReady(p);detail=(ms?ms+'-month report':'report')+' \u00b7 '+(rd==='ready'?'ready to produce':'waiting on data');}
+    else if(b==='due'){var ms=dhMilestone(p);var rd=dhReady(p);detail=(ms?ms+'-month report':'report')+' \u00b7 '+(rd==='sent'?'sent':(rd==='ready'?'ready to produce':'waiting on data'));}
     else if(b==='awaiting'){var mb=monthsBehind(p);detail=!p.latestMonth?'No data on file':(mb+' month'+(mb>1?'s':'')+' behind');}
     else detail='Data through '+(p.latestMonth?fmtMonth(p.latestMonth):'\u2014');
     return '<tr class="prow" data-id="'+p.id+'"><td>'+esc(p.name)+'</td><td class="muted">'+esc(p.type||'')+' \u00b7 '+esc(p.stt||'')+'</td><td>'+detail+'</td></tr>';
@@ -1530,7 +1533,7 @@ function renderDataHealth(){
       '<div class="dhcol"><div class="dhhd">6-month <span class="cnt">'+mil[6].length+'</span></div>'+dhList(mil[6])+'</div>'+
       '<div class="dhcol"><div class="dhhd">9-month <span class="cnt">'+mil[9].length+'</span></div>'+dhList(mil[9])+'</div>'+
     '</div>'+
-    '<div class="dhkey"><b>Dot key</b> <span class="dhdot" style="background:#22a05a;margin:0 5px 0 10px"></span>green = data current, ready to produce <span class="dhdot" style="background:#e0902c;margin:0 5px 0 16px"></span>amber = report is due but still waiting on data</div></div>';
+    '<div class="dhkey"><b>Dot key</b> <span class="dhdot" style="background:#22a05a;margin:0 5px 0 10px"></span>green = data current, ready to produce <span class="dhdot" style="background:#e0902c;margin:0 5px 0 16px"></span>amber = report due, still waiting on data <span class="dhcheck" style="margin:0 5px 0 16px">\u2713</span>blue check = report sent</div></div>';
   var fresh='<div class="panel"><h3>Data freshness</h3><div class="fresh">'+
     frow('Current',fb.cur,'#22a05a')+frow('1 month behind',fb.one,'var(--sky)')+frow('2+ months behind',fb.two,'#e0902c')+frow('No data on file',fb.none,'#c0392b')+
     '</div></div>';
