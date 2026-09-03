@@ -1503,7 +1503,7 @@ function renderDhBucket(b){
 }
 function renderDataHealth(){
   var el=document.getElementById('dataHealth');if(!el)return;
-  var ps=state.practices.filter(function(p){return !p.trackOnly;});
+  var ps=state.practices;  // count all practices for data currency; track-only are naturally excluded from report counts (reportDue=0)
   var n=ps.length;
   var current=ps.filter(function(p){return p.dataStatus==='Current';}).length;
   var awaiting=ps.filter(function(p){return p.dataStatus!=='Current';}).length;
