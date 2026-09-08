@@ -1124,15 +1124,22 @@ function renderData(){
   const effBody=recent.map(m=>`<tr><td>${fmtMonth(m.ym)}</td>${effCols.map(k=>`<td>${colVal(k,mval(m,k))}</td>`).join('')}</tr>`).join('');
   // ---- providers folded INTO the Totals table: each doctor's production + share of gross (slots computed above) ----
   let provTot='';
-  if(slots.length){
+  {
     const grossT=agg(t12,'grossP'),grossPr=p12.length?agg(p12,'grossP'):null,dash='<span class="muted">—</span>';
-    const rows=slots.map(n=>{
+    let rows='';
+    if(slots.length){rows+=slots.map(n=>{
       const aP=agg(t12,'doc'+n),bP=p12.length?agg(p12,'doc'+n):null,dP=delta(aP,bP);
       const aPct=grossT?aP/grossT*100:null,bPct=(bP!=null&&grossPr)?bP/grossPr*100:null,dPct=delta(aPct,bPct);
       return `<tr><td>${esc(docLabel(n))}</td><td>${fmt(aP,'money')}</td><td>${bP==null?dash:fmt(bP,'money')}</td><td class="${dP.cls}">${dP.txt}</td><td>${fmt(aP/(t12.length||1),'money')}</td></tr>`
         +`<tr><td style="padding-left:18px;color:var(--muted,#5b6472)">${esc(docLabel(n))} — % of production</td><td>${aPct==null?dash:fmt(aPct,'pct')}</td><td>${bPct==null?dash:fmt(bPct,'pct')}</td><td class="${dPct.cls}">${dPct.txt}</td><td>${dash}</td></tr>`;
-    }).join('');
-    provTot=`<tr><td colspan="5" style="font-weight:700;padding-top:12px">Providers — production &amp; share of gross production</td></tr>${rows}`;
+    }).join('');}
+    if(nzA(ms,'hyg')){
+      const aH=agg(t12,'hyg'),bH=p12.length?agg(p12,'hyg'):null,dH=delta(aH,bH);
+      const aHp=grossT?aH/grossT*100:null,bHp=(bH!=null&&grossPr)?bH/grossPr*100:null,dHp=delta(aHp,bHp);
+      rows+=`<tr><td>Hygiene</td><td>${fmt(aH,'money')}</td><td>${bH==null?dash:fmt(bH,'money')}</td><td class="${dH.cls}">${dH.txt}</td><td>${fmt(aH/(t12.length||1),'money')}</td></tr>`
+        +`<tr><td style="padding-left:18px;color:var(--muted,#5b6472)">Hygiene — % of production</td><td>${aHp==null?dash:fmt(aHp,'pct')}</td><td>${bHp==null?dash:fmt(bHp,'pct')}</td><td class="${dHp.cls}">${dHp.txt}</td><td>${dash}</td></tr>`;
+    }
+    if(rows)provTot=`<tr><td colspan="5" style="font-weight:700;padding-top:12px">Providers &amp; hygiene — production &amp; share of gross production</td></tr>${rows}`;
   }
   el.innerHTML=`
     <div class="panel"><h3>Totals — trailing 12 vs prior 12</h3>
@@ -1684,13 +1691,13 @@ function userInitials(n){return (n||'').trim().replace(/[^A-Za-z0-9 ]/g,'').spli
 function setUserBadge(){var n=localStorage.getItem(LS+'_uname')||'';var nm=document.getElementById('userName'),av=document.getElementById('userAv');if(nm)nm.textContent=n||'Add your name';if(av)av.textContent=n?userInitials(n):'FQ';}
 function promptUserName(){var cur=localStorage.getItem(LS+'_uname')||'';var v=window.prompt('Your name (shown in the sidebar):',cur);if(v!=null){v=String(v).trim();if(v)localStorage.setItem(LS+'_uname',v);else localStorage.removeItem(LS+'_uname');setUserBadge();}}
 /* ---------- reports (in-practice) ---------- */
-var REP={type:'pulse',win:'6mo',assoc:'all'};
+var REP={type:'pulse',win:'6mo',assoc:'all',awin:'12mo'};
 function repMoney(v){if(v==null||isNaN(v))return '—';return '$'+Math.round(v).toLocaleString('en-US');}
 function repPct(v){return (v==null||isNaN(v))?'—':v.toFixed(1)+'%';}
 function ymShift(ym,d){var y=+ym.slice(0,4),m=+ym.slice(5)-1+d;y+=Math.floor(m/12);m=((m%12)+12)%12;return y+'-'+('0'+(m+1)).slice(-2);}
 function repMonths(){return months().slice().sort(function(a,b){return a.ym<b.ym?-1:1;});}
-function repHasAssoc(){var dn=state.docNames||{};return Object.keys(dn).some(function(s){return /assoc/i.test(dn[s].role||'');});}
-function repAssocList(){var dn=state.docNames||{};return Object.keys(dn).map(Number).filter(function(s){return /assoc/i.test(dn[s].role||'');}).sort(function(a,b){return a-b;}).map(function(s){return {slot:s,name:dn[s].name||('Slot '+s),start:(dn[s].start||'').slice(0,7),ended:(dn[s].ended||'').slice(0,7)};});}
+function repHasAssoc(){var dn=state.docNames||{};return Object.keys(dn).some(function(s){return /assoc/i.test(dn[s].role||'')&&!(dn[s].ended);});}
+function repAssocList(){var dn=state.docNames||{};return Object.keys(dn).map(Number).filter(function(s){return /assoc/i.test(dn[s].role||'');}).sort(function(a,b){return a-b;}).map(function(s){return {slot:s,name:dn[s].name||('Slot '+s),start:(dn[s].start||'').slice(0,7),ended:(dn[s].ended||'').slice(0,7)};}).filter(function(x){return !x.ended;});}
 function repAgg(byYm,keys){var s={gross:0,adj:0,netP:0,netC:0,grossC:0,tot:0,newp:0,days:0,hyg:0};
   keys.forEach(function(k){var m=byYm[k];if(!m)return;s.gross+=m.grossP;s.adj+=m.adj;s.netP+=m.netP;s.netC+=m.netC;s.grossC+=(m.grossC||0);s.tot+=m.totPat;s.newp+=m.newPat;s.days+=m.days;s.hyg+=m.hyg;});
   s.adjR=s.gross?s.adj/s.gross*100:0;s.collR=s.netP?s.netC/s.netP*100:0;s.ppd=s.days?s.netP/s.days:0;s.npp=s.tot?s.netP/s.tot:0;s.hygPct=s.gross?s.hyg/s.gross*100:0;return s;}
@@ -1715,7 +1722,7 @@ function repChartGNC(ms){var keys=ms.slice(-18);var W=940,H=240,pL=52,pR=14,pT=1
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">'+g+bars+ln+dots+xl+'</svg>';}
 function repChartHyg(ms){var keys=ms.slice(-24);var W=900,H=210,pL=44,pR=14,pT=14,pB=26,n=keys.length,ymn=15,ymx=40;if(n<2)return '';
   function X(i){return pL+(i/(n-1))*(W-pL-pR);}function Y(v){return pT+(ymx-v)/(ymx-ymn)*(H-pT-pB);}
-  var band='<rect x="'+pL+'" y="'+Y(33).toFixed(1)+'" width="'+(W-pL-pR)+'" height="'+(Y(25)-Y(33)).toFixed(1)+'" fill="rgba(23,114,67,.09)"/><text x="'+(W-pR)+'" y="'+(Y(33)-3).toFixed(1)+'" font-size="9" fill="#2f9e44" text-anchor="end">healthy 25–33%</text>';
+  var band='<rect x="'+pL+'" y="'+Y(32).toFixed(1)+'" width="'+(W-pL-pR)+'" height="'+(Y(26)-Y(32)).toFixed(1)+'" fill="rgba(23,114,67,.09)"/><text x="'+(W-pR)+'" y="'+(Y(32)-3).toFixed(1)+'" font-size="9" fill="#2f9e44" text-anchor="end">healthy 26–32%</text>';
   var g='';[20,30,40].forEach(function(gv){g+='<line x1="'+pL+'" y1="'+Y(gv).toFixed(1)+'" x2="'+(W-pR)+'" y2="'+Y(gv).toFixed(1)+'" stroke="var(--line2)"/><text x="'+(pL-6)+'" y="'+(Y(gv)+3).toFixed(1)+'" font-size="9" fill="var(--ink-mut)" text-anchor="end">'+gv+'%</text>';});
   function pct(m){return m.grossP?m.hyg/m.grossP*100:0;}
   var ln='<polyline points="'+keys.map(function(m,i){return X(i).toFixed(1)+','+Y(pct(m)).toFixed(1);}).join(' ')+'" fill="none" stroke="#1F3864" stroke-width="2.2"/>';
@@ -1741,13 +1748,13 @@ function reportPulse(host){var w=repWindows();if(!w){host.innerHTML='<div class=
   var npY=repDelta(c.newp,p.newp);
   if(npY<=-3)sigs.push(repSig('watch','New patients softening',c.newp+' new patients, '+npY.toFixed(0)+'% year-over-year.'));
   else if(npY>=5)sigs.push(repSig('good','New patients growing',c.newp+' new patients, +'+npY.toFixed(0)+'% year-over-year.'));
-  if(c.hygPct<25)sigs.push(repSig('watch','Hygiene running light',c.hygPct.toFixed(0)+'% of production — under the 25–33% healthy range.'));
-  else if(c.hygPct>33)sigs.push(repSig('info','Hygiene running high',c.hygPct.toFixed(0)+'% of production — above the 25–33% range.'));
+  if(c.hygPct<26)sigs.push(repSig('watch','Hygiene running light',c.hygPct.toFixed(0)+'% of production — under the 26–32% healthy range.'));
+  else if(c.hygPct>32)sigs.push(repSig('info','Hygiene running high',c.hygPct.toFixed(0)+'% of production — above the 26–32% range.'));
   if(c.collR<95)sigs.push(repSig('watch','Collections lagging','Collection ratio '+c.collR.toFixed(0)+'% over the period.'));
   else if(sigs.length<3)sigs.push(repSig('good','Collections healthy','Collection ratio '+c.collR.toFixed(0)+'%.'));
   sigs=sigs.slice(0,3);
-  var green=netYoY>=0&&c.collR>=95&&c.hygPct>=24;
-  var watchList=[c.hygPct<25?'hygiene’s share':'',npY<0?'new-patient flow':''].filter(Boolean).join(' and ');
+  var green=netYoY>=0&&c.collR>=95&&c.hygPct>=26;
+  var watchList=[c.hygPct<26?'hygiene’s share':'',npY<0?'new-patient flow':''].filter(Boolean).join(' and ');
   var vh=green?'Healthy period, with a few things to watch.':'Some soft spots to address this period.';
   var vp='Net production is '+(netYoY>=0?'up ':'down ')+Math.abs(netYoY).toFixed(0)+'% and the collection ratio is '+c.collR.toFixed(0)+'%. '+(watchList?('Worth a look: '+watchList+'.'):'Nothing pressing to flag.');
   function row(l,cv,pv,fmt,pp,gd){var cs,ps;if(fmt==='pct'){cs=cv.toFixed(1)+'%';ps=pv.toFixed(1)+'%';}else if(fmt==='int'){cs=Math.round(cv).toLocaleString();ps=Math.round(pv).toLocaleString();}else{cs=repMoney(cv);ps=repMoney(pv);}
@@ -1763,45 +1770,49 @@ function reportHygiene(host){var ms=repMonths();if(!ms.length){host.innerHTML='<
   var hygPct=gT?hT/gT*100:0,perDay=dT?hT/dT:0,yoy=hP?(hT-hP)/hP*100:0;
   var pcts=ms.map(function(m){return {ym:m.ym,v:m.grossP?m.hyg/m.grossP*100:0};}).filter(function(x){return x.v>0;});
   var best=pcts.reduce(function(a,b){return b.v>a.v?b:a;},pcts[0]||{v:0,ym:''}),low=pcts.reduce(function(a,b){return b.v<a.v?b:a;},pcts[0]||{v:0,ym:''});
-  var green=hygPct>=25;
-  var sigs=repSig(hygPct<25?'watch':'good',hygPct<25?'Below the healthy band':'In the healthy band',hygPct.toFixed(0)+'% of production — target is 25–33%.')+
+  var inBand=hygPct>=26&&hygPct<=32;var green=inBand;
+  var sigs=repSig((hygPct<26||hygPct>32)?'watch':'good',(hygPct<26?'Below the healthy band':(hygPct>32?'Above the healthy band':'In the healthy band')),hygPct.toFixed(0)+'% of production — target is 26–32%.')+
     repSig('info',yoy>=0?'Holding steady':'Slipping',repMoney(hT)+' over the trailing year, '+(yoy>=0?'+':'')+yoy.toFixed(0)+'% YoY.')+
     repSig('watch','Swings month to month','Ranges '+low.v.toFixed(0)+'% ('+fmtMonth(low.ym)+') to '+best.v.toFixed(0)+'% ('+fmtMonth(best.ym)+').');
   var rows=ms.map(function(m){var pc=m.grossP?m.hyg/m.grossP*100:0;return '<tr><td>'+fmtMonth(m.ym)+'</td><td>'+repMoney(m.hyg)+'</td><td class="mut">'+repMoney(m.grossP)+'</td><td>'+pc.toFixed(1)+'%</td><td>'+(m.days?repMoney(m.hyg/m.days):'—')+'</td></tr>';}).join('');
-  host.innerHTML='<div class="rverdict '+(green?'green':'amber')+'"><div class="rvh">'+(green?'Hygiene is in a healthy range.':'Hygiene is carrying a little light.')+'</div><div class="rvp">At about '+hygPct.toFixed(0)+'% of production it sits '+(green?'inside':'just under')+' the healthy 25–33% band, '+(yoy>=0?'up ':'down ')+Math.abs(yoy).toFixed(0)+'% year-over-year.</div></div>'+
+  var hpos=hygPct>32?'above':(hygPct<26?'below':'inside');var vhead=hpos==='inside'?'Hygiene is in a healthy range.':(hpos==='below'?'Hygiene is carrying a little light.':'Hygiene is running high.');host.innerHTML='<div class="rverdict '+(green?'green':'amber')+'"><div class="rvh">'+vhead+'</div><div class="rvp">At about '+hygPct.toFixed(0)+'% of production it sits '+hpos+' the healthy 26–32% band, '+(yoy>=0?'up ':'down ')+Math.abs(yoy).toFixed(0)+'% year-over-year.</div></div>'+
     '<div class="rsigs">'+sigs+'</div>'+
     '<div class="rcard"><h3>Hygiene as a share of total production</h3><div class="rsub">The core health indicator; shaded band is the healthy range.</div>'+repChartHyg(ms)+'</div>'+
     '<details class="rdet"><summary>All months — hygiene detail <span class="cue">expand ▾</span></summary><table class="rtbl"><thead><tr><th>Month</th><th>Hygiene</th><th>Total prod</th><th>Share</th><th>Per day</th></tr></thead><tbody>'+rows+'</tbody></table></details>';}
-function reportAssociate(host){var ms=repMonths();var assocs=repAssocList();if(!assocs.length){host.innerHTML='<div class="rnote">No associates on record for this practice.</div>';return;}
+function repWinMonths(win){var ms=repMonths();if(!ms.length)return [];
+  if(win==='all')return ms.slice();
+  if(win==='ytd'){var y=ms[ms.length-1].ym.slice(0,4);return ms.filter(function(m){return m.ym.slice(0,4)===y;});}
+  var n=win==='6mo'?6:12;return ms.slice(-n);}
+function repWinLabel(win){return win==='6mo'?'last 6 months':win==='ytd'?'year to date':win==='all'?'all history':'trailing 12 months';}
+function reportAssociate(host){var assocs=repAssocList();if(!assocs.length){host.innerHTML='<div class="rnote">No current associates on record for this practice.</div>';return;}
+  var win=REP.awin||'12mo',wm=repWinMonths(win),wl=repWinLabel(win);
   var cols=['#1F3864','#E07B2A','#4a90d9','#94a7c2','#a35a13','#2f9e44','#7f92ad'];
+  var practNet=0,practColl=0;wm.forEach(function(m){practNet+=m.netP||0;practColl+=m.netC||0;});
   var picker='';if(assocs.length>1){picker='<div class="rpick"><span class="rpl">View</span><span class="rachip'+(REP.assoc==='all'?' on':'')+'" data-a="all">All associates</span>'+assocs.map(function(a){return '<span class="rachip'+(REP.assoc==String(a.slot)?' on':'')+'" data-a="'+a.slot+'">'+esc(a.name)+'</span>';}).join('')+'</div>';}
   else REP.assoc=String(assocs[0].slot);
   var bodyHtml;
   if(REP.assoc==='all'&&assocs.length>1){
-    var l12=ms.slice(-12);
-    var roster=assocs.map(function(a,ai){var tp=0,td=0;l12.forEach(function(m){var dd=m.doctors[a.slot-1]||{};tp+=dd.prod||0;td+=dd.days||0;});return {a:a,tp:tp,td:td,ppd:td?tp/td:0,col:cols[ai%cols.length]};});
+    var roster=assocs.map(function(a,ai){var tp=0,td=0;wm.forEach(function(m){var dd=m.doctors[a.slot-1]||{};tp+=dd.prod||0;td+=dd.days||0;});return {a:a,tp:tp,td:td,ppd:td?tp/td:0,col:cols[ai%cols.length],prodShare:practNet?tp/practNet*100:0,collShare:practColl?tp/practColl*100:0};});
     var poolP=roster.reduce(function(s,r){return s+r.tp;},0),poolD=roster.reduce(function(s,r){return s+r.td;},0);
-    roster.forEach(function(r){r.share=poolP?r.tp/poolP*100:0;});
     var sorted=roster.slice().sort(function(a,b){return b.tp-a.tp;}),top=sorted[0];
     var mxppd=Math.max.apply(null,roster.map(function(r){return r.ppd;}))||1;
-    var rrows=sorted.map(function(r){return '<tr><td><span class="rdot" style="background:'+r.col+'"></span>'+esc(r.a.name)+'</td><td>'+repMoney(r.ppd)+'<div class="rmini"><span style="width:'+(r.ppd/mxppd*100).toFixed(0)+'%;background:'+r.col+'"></span></div></td><td>'+repMoney(r.tp)+'</td><td>'+r.share.toFixed(0)+'%</td><td>'+Math.round(r.td)+'</td></tr>';}).join('');
+    var rrows=sorted.map(function(r){return '<tr><td><span class="rdot" style="background:'+r.col+'"></span>'+esc(r.a.name)+'</td><td>'+repMoney(r.ppd)+'<div class="rmini"><span style="width:'+(r.ppd/mxppd*100).toFixed(0)+'%;background:'+r.col+'"></span></div></td><td>'+repMoney(r.tp)+'</td><td>'+r.prodShare.toFixed(0)+'%</td><td>'+r.collShare.toFixed(0)+'%</td><td>'+Math.round(r.td)+'</td></tr>';}).join('');
     var legend=roster.map(function(r){return '<span class="rlg"><span class="rswb" style="background:'+r.col+'"></span>'+esc(r.a.name)+'</span>';}).join('');
-    bodyHtml='<div class="rverdict green"><div class="rvh">'+assocs.length+' associates producing '+repMoney(poolP)+' together.</div><div class="rvp">'+esc(top.a.name)+' leads the group at '+top.share.toFixed(0)+'% of associate production; blended output is about '+repMoney(poolD?poolP/poolD:0)+'/day across the pool (trailing 12 months).</div></div>'+
-      '<div class="rsigs"><div class="rsig info"><div class="ric">●</div><div><div class="rst">Associate production (12mo)</div><div class="rvv">'+repMoney(poolP)+'</div><div class="rsd">across '+assocs.length+' associates</div></div></div><div class="rsig info"><div class="ric">●</div><div><div class="rst">Blended per day</div><div class="rvv">'+repMoney(poolD?poolP/poolD:0)+'</div><div class="rsd">'+Math.round(poolD)+' associate-days</div></div></div><div class="rsig info"><div class="ric">●</div><div><div class="rst">Top producer</div><div class="rvv">'+esc(top.a.name.split(' ').pop())+'</div><div class="rsd">'+top.share.toFixed(0)+'% of production</div></div></div></div>'+
-      '<div class="rcard"><div class="rch"><h3>Associate production by month</h3><div class="rleg">'+legend+'</div></div>'+repChartStacked(l12,assocs,cols)+'</div>'+
-      '<div class="rcard"><h3>Who’s producing what</h3><div class="rsub">Each associate over the trailing 12 months. Pick a name above for their full report.</div><table class="rtbl"><thead><tr><th>Associate</th><th>Per day</th><th>Production (12mo)</th><th>Share</th><th>Days</th></tr></thead><tbody>'+rrows+'</tbody></table></div>';
+    bodyHtml='<div class="rverdict green"><div class="rvh">'+assocs.length+' associates produced '+repMoney(poolP)+' over the '+wl+'.</div><div class="rvp">Together that is '+(practNet?(poolP/practNet*100).toFixed(0):'0')+'% of practice production and '+(practColl?(poolP/practColl*100).toFixed(0):'0')+'% of collections. '+esc(top.a.name)+' leads at '+top.prodShare.toFixed(0)+'% of practice production; blended output about '+repMoney(poolD?poolP/poolD:0)+'/day.</div></div>'+
+      '<div class="rsigs"><div class="rsig info"><div class="ric">●</div><div><div class="rst">Associate production ('+wl+')</div><div class="rvv">'+repMoney(poolP)+'</div><div class="rsd">'+(practNet?(poolP/practNet*100).toFixed(0):'0')+'% of practice production</div></div></div><div class="rsig info"><div class="ric">●</div><div><div class="rst">Share of collections</div><div class="rvv">'+(practColl?(poolP/practColl*100).toFixed(0):'0')+'%</div><div class="rsd">vs '+repMoney(practColl)+' collected</div></div></div><div class="rsig info"><div class="ric">●</div><div><div class="rst">Blended per day</div><div class="rvv">'+repMoney(poolD?poolP/poolD:0)+'</div><div class="rsd">'+Math.round(poolD)+' associate-days</div></div></div></div>'+
+      '<div class="rcard"><div class="rch"><h3>Associate production by month</h3><div class="rleg">'+legend+'</div></div>'+repChartStacked(wm,assocs,cols)+'</div>'+
+      '<div class="rcard"><h3>Efficiency vs the practice — '+wl+'</h3><div class="rsub">Each associate’s production per day, and their share of total practice production and collections.</div><table class="rtbl"><thead><tr><th>Associate</th><th>Per day</th><th>Production</th><th>% of practice prod.</th><th>% of collections</th><th>Days</th></tr></thead><tbody>'+rrows+'</tbody></table></div>';
   } else {
     var slot=+REP.assoc,a=assocs.filter(function(x){return x.slot===slot;})[0]||assocs[0];
-    var series=ms.map(function(m){var dd=m.doctors[a.slot-1]||{};return {ym:m.ym,d:dd.days||0,p:dd.prod||0};});
+    var series=wm.map(function(m){var dd=m.doctors[a.slot-1]||{};return {ym:m.ym,d:dd.days||0,p:dd.prod||0};});
     var act=series.filter(function(x){return x.d>0;});
     var totP=act.reduce(function(s,x){return s+x.p;},0),totD=act.reduce(function(s,x){return s+x.d;},0),avg=totD?totP/totD:0;
-    var e6=act.slice(0,6),l6=act.slice(-6);var pe=function(a2){var tp=0,td=0;a2.forEach(function(x){tp+=x.p;td+=x.d;});return td?tp/td:0;};
-    var trend=pe(e6)?(pe(l6)-pe(e6))/pe(e6)*100:0;var gaps=series.length-act.length;
-    var sigs=repSig('good','Consistent per-day output',repMoney(avg)+'/day across '+Math.round(totD)+' days worked.')+
-      repSig(gaps>2?'watch':'info',gaps>2?'Works intermittently':'Works a full schedule',gaps>2?('Active '+act.length+' of '+series.length+' months; '+gaps+' off months.'):('Active '+act.length+' of '+series.length+' months.'))+
-      repSig('good','Trending up','Recent per-day '+(trend>=0?'+':'')+trend.toFixed(0)+'% vs early tenure.');
+    var prodShare=practNet?totP/practNet*100:0,collShare=practColl?totP/practColl*100:0,gaps=series.length-act.length;
+    var sigs=repSig('info','Share of practice production',prodShare.toFixed(0)+'% — '+repMoney(totP)+' of the practice’s '+repMoney(practNet)+' over the '+wl+'.')+
+      repSig('info','Share of collections',collShare.toFixed(0)+'% — measured against '+repMoney(practColl)+' collected.')+
+      repSig('good','Per-day output',repMoney(avg)+'/day across '+Math.round(totD)+' days'+(gaps>0?(', active '+act.length+' of '+series.length+' months.'):'.'));
     var rows=series.map(function(x){return '<tr><td>'+fmtMonth(x.ym)+'</td><td>'+(x.d||'—')+'</td><td>'+(x.d?repMoney(x.p):'—')+'</td><td>'+(x.d?repMoney(x.p/x.d):'off')+'</td></tr>';}).join('');
-    bodyHtml='<div class="rverdict green"><div class="rvh">'+esc(a.name)+' — '+(gaps>2?'in the chair part-time.':'a steady producer.')+'</div><div class="rvp">Turns out about '+repMoney(avg)+'/day'+(gaps>2?(', but has worked only '+act.length+' of the last '+series.length+' months — the gaps matter as much as the output.'):', working a consistent schedule.')+'</div></div>'+
+    bodyHtml='<div class="rverdict green"><div class="rvh">'+esc(a.name)+' — '+prodShare.toFixed(0)+'% of practice production over the '+wl+'.</div><div class="rvp">Produced '+repMoney(totP)+' ('+prodShare.toFixed(0)+'% of the practice’s '+repMoney(practNet)+' and '+collShare.toFixed(0)+'% of collections), about '+repMoney(avg)+'/day'+(gaps>0?(', working '+act.length+' of the last '+series.length+' months.'):', working a consistent schedule.')+'</div></div>'+
       '<div class="rsigs">'+sigs+'</div>'+
       '<div class="rcard"><h3>Production per day, by month</h3><div class="rsub">Orange = months worked; grey = off. Dashed line = average.</div>'+repChartPerDay(series)+'</div>'+
       '<details class="rdet"><summary>All months — '+esc(a.name)+' detail <span class="cue">expand ▾</span></summary><table class="rtbl"><thead><tr><th>Month</th><th>Days</th><th>Production</th><th>Per day</th></tr></thead><tbody>'+rows+'</tbody></table></details>';
@@ -1812,13 +1823,13 @@ function reportAssociate(host){var ms=repMonths();var assocs=repAssocList();if(!
 function openReport(type){REP.type=type;REP.assoc='all';var ov=document.getElementById('repOverlay');if(!ov){ov=document.createElement('div');ov.id='repOverlay';ov.className='repoverlay';document.body.appendChild(ov);}ov.style.display='block';document.body.classList.add('repopen');renderReport();var rm=document.getElementById('repMenu');if(rm)rm.classList.remove('open');}
 function closeReport(){var ov=document.getElementById('repOverlay');if(ov)ov.style.display='none';document.body.classList.remove('repopen');}
 function renderReport(){var ov=document.getElementById('repOverlay');if(!ov)return;var title=REP.type==='pulse'?'Practice Pulse':REP.type==='hygiene'?'Hygiene':'Associate Productivity';
-  var seg=REP.type==='pulse'?'<div class="repseg"><span data-w="6mo" class="'+(REP.win==='6mo'?'on':'')+'">6-Month</span><span data-w="ytd" class="'+(REP.win==='ytd'?'on':'')+'">YTD</span></div>':'';
+  var seg='';if(REP.type==='pulse')seg='<div class="repseg"><span data-w="6mo" class="'+(REP.win==='6mo'?'on':'')+'">6-Month</span><span data-w="ytd" class="'+(REP.win==='ytd'?'on':'')+'">YTD</span></div>';else if(REP.type==='assoc')seg='<div class="repseg"><span data-aw="6mo" class="'+((REP.awin||'12mo')==='6mo'?'on':'')+'">6-Mo</span><span data-aw="12mo" class="'+((REP.awin||'12mo')==='12mo'?'on':'')+'">12-Mo</span><span data-aw="ytd" class="'+((REP.awin||'12mo')==='ytd'?'on':'')+'">YTD</span><span data-aw="all" class="'+((REP.awin||'12mo')==='all'?'on':'')+'">All</span></div>';
   ov.innerHTML='<div class="repbar"><div class="rept">'+esc(state.current.name)+' · '+title+'</div>'+seg+'<div class="repsp"></div><button class="repprint">Print / PDF</button><button class="repclose">Close ✕</button></div><div class="repbody" id="repBody"></div>';
   var body=document.getElementById('repBody');
   if(REP.type==='pulse')reportPulse(body);else if(REP.type==='hygiene')reportHygiene(body);else reportAssociate(body);
   ov.querySelector('.repclose').onclick=closeReport;
   ov.querySelector('.repprint').onclick=function(){window.print();};
-  ov.querySelectorAll('.repseg span').forEach(function(s){s.onclick=function(){REP.win=s.getAttribute('data-w');renderReport();};});
+  ov.querySelectorAll('.repseg span[data-w]').forEach(function(s){s.onclick=function(){REP.win=s.getAttribute('data-w');renderReport();};});ov.querySelectorAll('.repseg span[data-aw]').forEach(function(s){s.onclick=function(){REP.awin=s.getAttribute('data-aw');renderReport();};});
 }
 
 /* ---------- login (web/deployed mode only) ---------- */
