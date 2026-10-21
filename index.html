@@ -275,6 +275,12 @@ tbody tr:hover{background:var(--panel-2)}
 .vplist button small{display:block;font-weight:400;color:var(--ink-soft);font-size:11px;margin-top:2px}
 .dhcard.on{outline:2px solid var(--navy)}
 tr.grp td{background:var(--panel-2);font-size:12.5px}
+/* financials tracker row tints by status */
+tr.fs-current td{background:rgba(47,158,68,.08)}  tr.grp.fs-current td{background:rgba(47,158,68,.16)}
+tr.fs-due td{background:rgba(232,134,58,.10)}     tr.grp.fs-due td{background:rgba(232,134,58,.20)}
+tr.fs-over td{background:rgba(163,45,45,.09)}     tr.grp.fs-over td{background:rgba(163,45,45,.18)}
+tr.fs-none td{background:rgba(120,128,140,.07)}   tr.grp.fs-none td{background:rgba(120,128,140,.15)}
+tr.prow.fs-current:hover td,tr.prow.fs-due:hover td,tr.prow.fs-over:hover td,tr.prow.fs-none:hover td{filter:brightness(.96)}
 .vplist button.on,.vplist button:hover{border-color:var(--navy);background:var(--panel-2)}
 .mwcols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}
 @media(max-width:640px){.mwcols{grid-template-columns:1fr}}
@@ -2227,10 +2233,11 @@ function renderDhFin(el){
   var due=function(p){if(!p.finDue)return '—';var d=new Date(p.finDue+'T12:00:00');return MONTHS[d.getMonth()]+' '+d.getDate();};
   var nextYm=function(p){return p.latestFin?shiftYm(p.latestFin,1):'';};
   var rows=G.filter(function(g){return !sel||sel===g[0];}).map(function(g){var arr=(by[g[0]]||[]).slice().sort(function(a,b){return a.name.localeCompare(b.name);});if(!arr.length)return '';
-    return '<tr class="grp"><td colspan="5"><b style="color:'+g[1]+'">'+g[0]+'</b> <span class="muted">'+arr.length+'</span></td></tr>'+arr.map(function(p){
+    var fc={'Overdue':'fs-over','Due soon':'fs-due','Current':'fs-current','Not loaded yet':'fs-none'}[g[0]]||'';
+    return '<tr class="grp '+fc+'"><td colspan="5"><b style="color:'+g[1]+'">'+g[0]+'</b> <span class="muted">'+arr.length+'</span></td></tr>'+arr.map(function(p){
       var acc=p.accountantId?teamName(p.accountantId):'';
       var nx=nextYm(p),what=p.latestFin?(MONTHS[+nx.slice(5,7)-1]+' '+nx.slice(0,4)+' due '+due(p)):'—';
-      return '<tr class="prow" data-id="'+p.id+'"><td>'+esc(p.name)+' <span class="muted">'+esc(p.uid)+'</span></td><td class="muted">'+esc(acc||'—')+'</td><td>'+(p.latestFin?fmtMonth(p.latestFin):'—')+'</td><td>'+(p.latestMonth?fmtMonth(p.latestMonth):'—')+'</td><td>'+what+'</td></tr>';}).join('');}).join('');
+      return '<tr class="prow '+fc+'" data-id="'+p.id+'"><td>'+esc(p.name)+' <span class="muted">'+esc(p.uid)+'</span></td><td class="muted">'+esc(acc||'—')+'</td><td>'+(p.latestFin?fmtMonth(p.latestFin):'—')+'</td><td>'+(p.latestMonth?fmtMonth(p.latestMonth):'—')+'</td><td>'+what+'</td></tr>';}).join('');}).join('');
   el.innerHTML=dhToggle()+'<div class="hero"><h2>Data Health · Financials</h2><p>Monthly financials from the accounting team. Each month is due by the 14th of the second month after (September by November 14) and is overdue from the 15th. '+n+' financials clients'+(sel?' · showing '+esc(sel)+' <a id="dhFinAll" style="cursor:pointer;color:var(--blue)">show all</a>':'')+'.</p></div>'+cards
     +'<div class="panel"><div class="tw"><table><thead><tr><th>Practice</th><th>Accountant</th><th>Financials through</th><th>Production through</th><th>Next month due</th></tr></thead><tbody>'+(rows||'<tr><td colspan="5" class="muted">None.</td></tr>')+'</tbody></table></div></div>';
   bindDhToggle(el);
