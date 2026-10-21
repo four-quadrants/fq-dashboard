@@ -32,6 +32,29 @@ const PORTFOLIO_FIELDS = [
   'flddVZLB1It45H8zA','fldLjdYgDDWp547g4','fldBGCM7UntlMkSBX','fld3hhx3bLB09XaQ2',
   'fldswmNXf9rCbHaFw','fldekkdWDhz5YJev9','fldJvzltfI4Q9wkdq'
 ];
+// MonthlyFinancials (v18): P&L category columns (monthly activity), balance-sheet columns
+// (month-end), Basis, Load Notes, Account Detail, and the statement check totals.
+const FIN_FIELDS = [
+  'fldXig4JLOvu1RqIe','fldxt3lqqi4lQo2PS','fldrQEKd5wqyWBp0I','flduoRauXGPe9vcdR','fldNA3gi2gs4iRbRC',
+  'fld1uAoF6nmEj4kc3','fldke51QOSLTmSFkA','fldWg9FXD5YL4YBK9',
+  // P&L
+  'fld2jzSkJo93mEmde','fldczZHIJk6U6J38S','fldEVEuJyTLthC7Eo',
+  'fldP5YVNWD3bug5Xb','fldVWQYflwybJPY7G','fldyI4WGZByqIeIrF','fldRNEkJAfUaf8eLs','fldBbvejurDOLYHyk',
+  'fldNDfU9hoQB8fxZ1','fldu6vHgS5SbXqH5T','fldqT7SUzXkvMFtmx','fldR5RHZrWhMpqQSA','fldkV6GbsphsXUwiO',
+  'fldmKUSri3UYk4Pit','fldD94BzAsqK2sxth','fldeP865WCtNyBuB0',
+  'fldsMV50VrFeEJU3R','fldJLcwppIjht6nvk','fldmN7OrNsdPLsmWa','fldAJQQ36KqEFXSsH',
+  'fldGI0I7peFgOTYmg','fld3TgBDS4VriueY8','fldqy3X7MAwSEODWb','fldnpgZ0qTVT3Hvy6','fldzQIWZjbIW1mVwf',
+  'fldOtP0Qx9nYvbfdn','fld24XZfLmJgkGQka','fldQpN5SxuZi5vow2','fld4QJmvZHWRnpCsx',
+  'fld8eYZHpslV3JXAI','fldPIBXevQ6dSUqio','fld4qUfmn1Ikzev9i','fldSO6VHT6EZkpxMP','fld61YmT4O8L8lrBo','fldMVjJk8ILLoSo7y',
+  'fldZO6vsjRN2peLfF','fldECml70miMoe3wr','flddxPtqwUl182fUI','fldgg4iLRUi3LJFk3','fldWT1k55kxn4hHNT',
+  'fldlpUB5EsJdbdVQr',
+  // One-offs (JSON, loader-owned) - powers the "Excluding one-offs" view
+  'fldT8UB2YU9UtX4Np',
+  // Balance sheet
+  'fldckN81CtwCJsMqT','fldIQ2AJlwO22aemU','fldZC1blYmNy21F7S','fldxOI5Bl9bWImwra','fld8XozehUMSLjTRe',
+  'fldKZkiunNf5rijIk','fldGDUFmm4uPnCzfX','fldQyKyTznpWeDCAN','fldGDETlSrTNEewZq','fldbKz1pZ9XiRS720',
+  'fldEl2C8utZOaRn3X','fldvnAHYJSUjAhTIv','fldtLxaXtXveYIccc','fldKuMHLl1K59lcIz'
+];
 
 // Whitelisted resources -> table + exact fields + optional practice-link filter + sort.
 const RES = {
@@ -40,7 +63,11 @@ const RES = {
     fields: ['fldAFjgH9h49Fem9x','fldDIczZcGe7994dp','fldExbHIOMSmNuQ0o','fldno1MWgUylqz81C',
              'fldUIyId0U9TNzQQM','fldWiJ8Hx1cLPc9rQ','fld8ghrOGS9UHq0mT','fldJUgl9j19XAKBJr',
              'fldzIv29NmW3SkJfV','fldDO0DQbwPi0dWZx','fldAsDcCvj9buY2kb','fldrTTzJPcCnGaTmu',
-             'fldrUFlEllGgKOurv','fldCHZ3HSoHwPSRsH'],
+             'fldrUFlEllGgKOurv','fldCHZ3HSoHwPSRsH',
+             // v18 financials: Accountant, Financials Client, Target/Historical Overhead,
+             // Ideal Cash Balance, Latest Financials Month
+             'fldc33uOdw3uKK89P','fldJhvvtIPMyM2fRE','fldQFJeY45kRJE3oX','fldReDkA6dMjH60Kf',
+             'fldjpgU6elK2abfHr','fldYQ0vm1QsXWN1TC','fldnVrz5hA17oY2bu','fldgvSiqZE0jrrUZ5'],
     sort: [{ field: 'fldAFjgH9h49Fem9x', dir: 'asc' }]
   },
   monthly: {
@@ -64,6 +91,21 @@ const RES = {
     sort: [{ field: 'fldwbKiIfMg691cxa', dir: 'asc' }],
     requiresPractice: true
   },
+  // v18: one practice's monthly P&L + balance sheet rows, oldest first.
+  financials: {
+    table: 'tblBELWpdR1EiowD4',
+    fields: FIN_FIELDS,
+    linkFieldName: 'Practice UID',
+    sort: [{ field: 'fldXig4JLOvu1RqIe', dir: 'asc' }],
+    requiresPractice: true
+  },
+  // v18: staff list (names/initials for the Accountant link and the "My clients" picker).
+  team: {
+    table: 'tbl34umujZ5FY3oPM',
+    fields: ['fldKHHsAQs1jg76il','fldf98AlwbiO75IzB','fldlv92zvcktMyqt6','fld224ky0IzRNmNx0','fldoe79CXo7KVvymt',
+             'fld5m0aNHoF8U645q'],   // My Clients (v18.3)
+    sort: [{ field: 'fldKHHsAQs1jg76il', dir: 'asc' }]
+  },
   // Book-wide: recent monthly rows across all practices (the app keeps each practice's
   // latest month). Capped so the serverless call stays fast and well under the timeout.
   portfolio: {
@@ -86,19 +128,43 @@ function isAuthed(req) {
   return parseCookies(req.headers.cookie)['ps_auth'] === authToken(pw);
 }
 
+// ---- Capacity protection (v18) ----------------------------------------------
+// Airtable allows 5 requests/second per base; going over locks the base's API out for
+// 30 s, for everyone (including the loaders). The Team plan also caps the workspace at
+// 100,000 API calls a month. So the proxy:
+//   1. caches each answer in memory for a few minutes (one fetch serves everyone);
+//   2. shares in-flight fetches (two people opening the same practice = one fetch);
+//   3. paces its own Airtable calls to <= ~4/s;
+//   4. on a 429, waits 30 s once and retries instead of failing.
+// The cache lives inside this function, behind the password check (never Vercel's
+// shared CDN cache, which would sit in front of the login).
+const TTL_MS = { portfolio: 5 * 60e3, practices: 60e3, team: 30 * 60e3, default: 60e3 };
+const cache = new Map();      // key -> { at, records }
+const inflight = new Map();   // key -> Promise
+let nextSlot = 0;             // pacing: earliest time the next Airtable call may start
+const GAP_MS = 250;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function paced() {
+  const now = Date.now(), at = Math.max(now, nextSlot);
+  nextSlot = at + GAP_MS;
+  if (at > now) await sleep(at - now);
+}
+
 async function fetchAll(table, fields, filterByFormula, sort, maxRecords) {
   const token = process.env.AIRTABLE_TOKEN;
   if (!token) throw new Error('AIRTABLE_TOKEN not set on the server');
   let records = [], offset;
   do {
-    const url = new URL(`https://api.airtable.com/v0/${BASE}/${table}`);
+    const url = new URL(`${process.env.AIRTABLE_API_ORIGIN || 'https://api.airtable.com'}/v0/${BASE}/${table}`);
     fields.forEach(f => url.searchParams.append('fields[]', f));
     url.searchParams.set('returnFieldsByFieldId', 'true');
     url.searchParams.set('pageSize', '100');
     if (filterByFormula) url.searchParams.set('filterByFormula', filterByFormula);
     if (sort) sort.forEach((s, i) => { url.searchParams.set(`sort[${i}][field]`, s.field); url.searchParams.set(`sort[${i}][direction]`, s.dir); });
     if (offset) url.searchParams.set('offset', offset);
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    await paced();
+    let r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (r.status === 429) { await sleep(30e3); await paced(); r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } }); }
     if (!r.ok) throw new Error('Airtable ' + r.status);
     const data = await r.json();
     records = records.concat(data.records || []);
@@ -106,6 +172,16 @@ async function fetchAll(table, fields, filterByFormula, sort, maxRecords) {
     if (maxRecords && records.length >= maxRecords) break;
   } while (offset);
   return records.map(r => ({ id: r.id, cellValuesByFieldId: r.fields || {} }));
+}
+
+async function cachedFetch(key, ttl, fn) {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < ttl) return hit.records;
+  if (inflight.has(key)) return inflight.get(key);
+  const p = fn().then(records => { cache.set(key, { at: Date.now(), records }); return records; })
+                .finally(() => inflight.delete(key));
+  inflight.set(key, p);
+  return p;
 }
 
 export default async function handler(req, res) {
@@ -123,7 +199,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const records = await fetchAll(spec.table, spec.fields, filter, spec.sort, spec.maxRecords);
+    const resName = String(req.query.resource);
+    const key = resName + '|' + (spec.requiresPractice ? String(req.query.practice) : '');
+    const fresh = req.query.fresh === '1';       // "Refresh" button: bypass the cache once
+    if (fresh) cache.delete(key);
+    const records = await cachedFetch(key, TTL_MS[resName] || TTL_MS.default,
+      () => fetchAll(spec.table, spec.fields, filter, spec.sort, spec.maxRecords));
     res.status(200).json({ records });
   } catch (e) {
     res.status(502).json({ error: String(e.message || e) });
