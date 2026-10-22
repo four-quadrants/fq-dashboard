@@ -67,7 +67,9 @@ const RES = {
              // v18 financials: Accountant, Financials Client, Target/Historical Overhead,
              // Ideal Cash Balance, Latest Financials Month
              'fldc33uOdw3uKK89P','fldJhvvtIPMyM2fRE','fldQFJeY45kRJE3oX','fldReDkA6dMjH60Kf',
-             'fldjpgU6elK2abfHr','fldYQ0vm1QsXWN1TC','fldnVrz5hA17oY2bu','fldgvSiqZE0jrrUZ5','fldMrujppN7v2B03I','fldHWBE5ZtqDOtAw4','fldKnPMfSXwuGdXfW'],
+             'fldjpgU6elK2abfHr','fldYQ0vm1QsXWN1TC','fldnVrz5hA17oY2bu','fldgvSiqZE0jrrUZ5','fldMrujppN7v2B03I','fldHWBE5ZtqDOtAw4','fldKnPMfSXwuGdXfW',
+             // v18.7 Financials Only (No Production)
+             'fldjtYNGc0D0gMnp1'],
     sort: [{ field: 'fldAFjgH9h49Fem9x', dir: 'asc' }]
   },
   monthly: {

@@ -857,11 +857,15 @@ function renderShell(){
   // Two sections: Production (the original tabs) and Financials (its own sub-tabs). state.tab 'fin-*' = Financials.
   if(state.tab==='financials')state.tab='fin-overview';
   if(String(state.tab).startsWith('fin-')&&!finOn)state.tab='overview';
-  const FIN_TABS=[['fin-overview','Overview'],['fin-cash','Cash & Debt'],['fin-vsprod','Financials vs Production'],['fin-stmts','Statements']];
+  // Financials-only clients (v18.8): no production section - open straight on Financials, no Production/Financials toggle.
+  const finOnlyP=!!(p&&p.finOnly)&&finOn;
+  if(finOnlyP&&!String(state.tab).startsWith('fin-')){state.preFinOnlyTab=state.tab;state.tab=state.lastFin||'fin-overview';}
+  else if(!finOnlyP&&state.preFinOnlyTab){state.tab=state.preFinOnlyTab;state.preFinOnlyTab=null;}   // back on a normal practice: return to the tab you were on
+  const FIN_TABS=finOnlyP?[['fin-overview','Overview'],['fin-cash','Cash & Debt'],['fin-stmts','Statements']]:[['fin-overview','Overview'],['fin-cash','Cash & Debt'],['fin-vsprod','Financials vs Production'],['fin-stmts','Statements']];
   if(String(state.tab).startsWith('fin-')&&!FIN_TABS.some(t=>t[0]===state.tab))state.tab='fin-overview';
   const inFin=String(state.tab).startsWith('fin-');
-  if(!inFin)state.lastProd=state.tab;else state.lastFin=state.tab;
-  const secBar=finOn?`<div class="secbar"><button data-sec="prod"${inFin?'':' class="active"'}>Production</button><button data-sec="fin"${inFin?' class="active"':''}>Financials</button></div>`:'';
+  if(!inFin)state.lastProd=state.tab;else if(!finOnlyP||state.tab!=='fin-vsprod')state.lastFin=state.tab;
+  const secBar=finOn&&!finOnlyP?`<div class="secbar"><button data-sec="prod"${inFin?'':' class="active"'}>Production</button><button data-sec="fin"${inFin?' class="active"':''}>Financials</button></div>`:'';
   const shownTabs=inFin?FIN_TABS:tabs;
   document.getElementById('stage').innerHTML=`
     <div class="pdetail"><aside class="plist" id="plist">${stageListHTML()}</aside><div class="pmain">
@@ -874,9 +878,9 @@ function renderShell(){
       ${p.finOnly?'<span class="chip">Financials only</span>':''}
       ${locChip}
       <span class="spacer"></span>
-      <div class="repwrap"><button id="repBtn" class="repbtn">Reports <span class="rcar">▾</span></button><div id="repMenu" class="repmenu"><div class="rmh">Reports for this practice</div><a data-rep="pulse"><span class="rdt"></span><div>Practice Pulse<small>6-month / YTD health check</small></div></a><a data-rep="hygiene"><span class="rdt"></span><div>Hygiene<small>Share of production &amp; per-day</small></div></a>${repHasAssoc()?'<a data-rep="assoc"><span class="rdt"></span><div>Associate Productivity<small>Pool &amp; individuals</small></div></a>':''}${(state.finRows&&state.finRows.length)?'<div class="rmh" style="border-top:1px solid var(--line);margin-top:4px">Accounting</div><a data-rep="fin"><span class="rdt" style="background:var(--navy)"></span><div>Monthly Financial Report<small>Report + P&amp;L &amp; balance sheet</small></div></a>':''}</div></div>
+      <div class="repwrap"><button id="repBtn" class="repbtn">Reports <span class="rcar">▾</span></button><div id="repMenu" class="repmenu"><div class="rmh">Reports for this practice</div>${finOnlyP?'':`<a data-rep="pulse"><span class="rdt"></span><div>Practice Pulse<small>6-month / YTD health check</small></div></a><a data-rep="hygiene"><span class="rdt"></span><div>Hygiene<small>Share of production &amp; per-day</small></div></a>${repHasAssoc()?'<a data-rep="assoc"><span class="rdt"></span><div>Associate Productivity<small>Pool &amp; individuals</small></div></a>':''}`}${(state.finRows&&state.finRows.length)?'<div class="rmh"'+(finOnlyP?'':' style="border-top:1px solid var(--line);margin-top:4px"')+'>Accounting</div><a data-rep="fin"><span class="rdt" style="background:var(--navy)"></span><div>Monthly Financial Report<small>Report + P&amp;L &amp; balance sheet</small></div></a>':''}</div></div>
       ${locSel}
-      <span class="chip through ${overdue?'warn':''}">Production through ${latest?fmtMonth(latest.ym):'—'}</span>
+      ${finOnlyP?'':`<span class="chip through ${overdue?'warn':''}">Production through ${latest?fmtMonth(latest.ym):'—'}</span>`}
       ${p.finClient?`<span class="chip through ${/overdue/i.test(p.finStatus)?'warn':''}">${p.latestFin?'Financials through '+fmtMonth(p.latestFin):'Financials not loaded yet'}</span>`:''}
     </div>
     ${teamLine(p)}
