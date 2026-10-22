@@ -285,6 +285,7 @@ tr.prow.fs-current:hover td,tr.prow.fs-due:hover td,tr.prow.fs-over:hover td,tr.
 .tmg{display:inline-flex;align-items:center;gap:4px}.tml{margin-right:2px}
 .tmi{display:inline-block;min-width:22px;padding:1px 5px;border-radius:999px;border:1px solid var(--line);font-size:10.5px;font-weight:600;color:var(--ink-soft);text-align:center;cursor:default}
 .tmi:hover{border-color:var(--navy);color:var(--navy)}
+.fqtip{position:fixed;z-index:200;background:#1f2b3d;color:#fff;font-size:12px;line-height:1.45;padding:6px 10px;border-radius:7px;white-space:pre;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.25);display:none}
 .tmrow{font-size:10.5px;color:var(--ink-soft);letter-spacing:.02em;margin-top:6px;cursor:default}
 .vplist button.on,.vplist button:hover{border-color:var(--navy);background:var(--panel-2)}
 .mwcols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}
@@ -655,7 +656,7 @@ async function apiRecords(resource,practice){
     if(!r.ok){let m='data '+r.status;try{m=(await r.json()).error||m;}catch(e){}throw new Error(m);}
     return (await r.json()).records||[];
   }
-  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo,PR.owner,PR.logoDark,PRX.accountant,PRX.finClient,PRX.tgtOH,PRX.histOH,PRX.idealCash,PRX.latestFin,PRX.finStatus,PRX.finDue,PRX.clientThrough,PRX.active,PRX.teamLink],sort:[{fieldId:PR.name,direction:'asc'}]});
+  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo,PR.owner,PR.logoDark,PRX.accountant,PRX.finClient,PRX.tgtOH,PRX.histOH,PRX.idealCash,PRX.latestFin,PRX.finStatus,PRX.finDue,PRX.clientThrough,PRX.active,PRX.teamLink,PRX.finOnly],sort:[{fieldId:PR.name,direction:'asc'}]});
   if(resource==='financials')return atList(T_FIN,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[FI.link,[practice.id]]}]},sort:[{fieldId:FI.month,direction:'asc'}]}).catch(()=>[]);
   if(resource==='team')return atList(T_TEAM,{sort:[{fieldId:TM.name,direction:'asc'}]}).catch(()=>[]);
   if(resource==='monthly')return atList(T_MONTHLY,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[MD.link,[practice.id]]}]},sort:[{fieldId:MD.month,direction:'desc'}]});
@@ -695,6 +696,7 @@ async function loadPractices(){
     latestFin:(function(v){v=Array.isArray(v)?v[0]:v;return v?String(v).slice(0,7):'';})(c[PRX.latestFin]),
     finStatus:c[PRX.finStatus]||'',finDue:c[PRX.finDue]?String(c[PRX.finDue]).slice(0,10):'',
     clientThrough:c[PRX.clientThrough]?String(c[PRX.clientThrough]).slice(0,10):'',
+    finOnly:!!c[PRX.finOnly],   // v18.7: financials-only client (no production tracking)
     active:c[PRX.active]==null||c[PRX.active]===''?true:num(c[PRX.active])===1,
     teamIds:(Array.isArray(c[PRX.teamLink])?c[PRX.teamLink].map(x=>x&&x.id?x.id:x):[])};});
   // Former clients (Client Through date passed -> Active 0) are hidden everywhere in the app; history stays in Airtable.
@@ -869,6 +871,7 @@ function renderShell(){
       ${p.stt?`<span class="chip">${esc(p.stt)}</span>`:''}
       ${p.renewal?`<span class="chip">Renewal: ${esc(p.renewal)}</span>`:''}
       ${p.clientThrough?`<span class="chip warn">${leavingTxt(p)}</span>`:''}
+      ${p.finOnly?'<span class="chip">Financials only</span>':''}
       ${locChip}
       <span class="spacer"></span>
       <div class="repwrap"><button id="repBtn" class="repbtn">Reports <span class="rcar">▾</span></button><div id="repMenu" class="repmenu"><div class="rmh">Reports for this practice</div><a data-rep="pulse"><span class="rdt"></span><div>Practice Pulse<small>6-month / YTD health check</small></div></a><a data-rep="hygiene"><span class="rdt"></span><div>Hygiene<small>Share of production &amp; per-day</small></div></a>${repHasAssoc()?'<a data-rep="assoc"><span class="rdt"></span><div>Associate Productivity<small>Pool &amp; individuals</small></div></a>':''}${(state.finRows&&state.finRows.length)?'<div class="rmh" style="border-top:1px solid var(--line);margin-top:4px">Accounting</div><a data-rep="fin"><span class="rdt" style="background:var(--navy)"></span><div>Monthly Financial Report<small>Report + P&amp;L &amp; balance sheet</small></div></a>':''}</div></div>
@@ -1330,7 +1333,7 @@ function baseOpts(f){const grid=isDark()?'rgba(255,255,255,.09)':'#eef0f3',tc=is
 
 /* ---------- financials (v18) ---------- */
 const T_FIN='tblBELWpdR1EiowD4', T_TEAM='tbl34umujZ5FY3oPM';
-const PRX={teamLink:'fldKnPMfSXwuGdXfW',clientThrough:'fldMrujppN7v2B03I',active:'fldHWBE5ZtqDOtAw4',finStatus:'fldnVrz5hA17oY2bu',finDue:'fldgvSiqZE0jrrUZ5',accountant:'fldc33uOdw3uKK89P',finClient:'fldJhvvtIPMyM2fRE',tgtOH:'fldQFJeY45kRJE3oX',histOH:'fldReDkA6dMjH60Kf',idealCash:'fldjpgU6elK2abfHr',latestFin:'fldYQ0vm1QsXWN1TC'};
+const PRX={finOnly:'fldjtYNGc0D0gMnp1',teamLink:'fldKnPMfSXwuGdXfW',clientThrough:'fldMrujppN7v2B03I',active:'fldHWBE5ZtqDOtAw4',finStatus:'fldnVrz5hA17oY2bu',finDue:'fldgvSiqZE0jrrUZ5',accountant:'fldc33uOdw3uKK89P',finClient:'fldJhvvtIPMyM2fRE',tgtOH:'fldQFJeY45kRJE3oX',histOH:'fldReDkA6dMjH60Kf',idealCash:'fldjpgU6elK2abfHr',latestFin:'fldYQ0vm1QsXWN1TC'};
 const TM={name:'fldKHHsAQs1jg76il',ini:'fldf98AlwbiO75IzB',title:'fldlv92zvcktMyqt6',email:'fld224ky0IzRNmNx0',role:'fldoe79CXo7KVvymt',my:'fld5m0aNHoF8U645q'};
 const FI={month:'fldXig4JLOvu1RqIe',link:'fldxt3lqqi4lQo2PS',basis:'fldrQEKd5wqyWBp0I',notes:'flduoRauXGPe9vcdR',detail:'fldNA3gi2gs4iRbRC',
   rptInc:'fld1uAoF6nmEj4kc3',rptNI:'fldke51QOSLTmSFkA',rptTA:'fldWg9FXD5YL4YBK9',
@@ -1871,7 +1874,7 @@ function expectedDataYm(){const n=new Date();let y=n.getFullYear(),m=n.getMonth(
 function ymNum(ym){const p=(ym||'').split('-');return p.length===2?(+p[0])*12+(+p[1]-1):-1;}
 function monthsBehind(p){if(!p.latestMonth)return 99;const d=ymNum(expectedDataYm())-ymNum(p.latestMonth);return d>0?d:0;}
 // attention = >1 month behind on data, an overdue report, or incomplete/flagged data — NOT just "last month not in yet"
-function needsAttention(p){return !p.clientThrough&&(monthsBehind(p)>=2||/overdue/i.test(p.reportStatus||'')||(p.missing&&p.missing.length>0));}
+function needsAttention(p){return !p.clientThrough&&!p.finOnly&&(monthsBehind(p)>=2||/overdue/i.test(p.reportStatus||'')||(p.missing&&p.missing.length>0));}
 function filteredHome(){const hf=state.hf,nq=norm(hf.q);
   const list=state.practices.filter(p=>{
     if(hf.type&&p.type!==hf.type)return false;
@@ -1889,18 +1892,18 @@ function clientTeam(p){const T={};(state.team||[]).forEach(t=>T[t.id]=t);const i
   const pl=[],rv=[];ids.forEach(id=>{const t=T[id];if(!t)return;if(/planning/i.test(t.role))pl.push(t);else if(id!==p.accountantId)rv.push(t);});
   const by=a=>a.sort((x,y)=>x.name.localeCompare(y.name));return{planners:by(pl),accountant:T[p.accountantId]||null,reviewers:by(rv)};}
 function tmIni(t){return userInitials(t.name);}
-function tmChip(t,role){return `<span class="tmi" title="${esc(t.name)} · ${role}">${esc(tmIni(t))}</span>`;}
+function tmChip(t,role){return `<span class="tmi" data-tip="${esc(t.name)} · ${role}">${esc(tmIni(t))}</span>`;}
 function teamLine(p,compact){const c=clientTeam(p),g=[];
   if(c.planners.length)g.push(`<span class="tmg"><span class="tml">Planner</span>${c.planners.map(t=>tmChip(t,'Planner')).join('')}</span>`);
   if(c.accountant)g.push(`<span class="tmg"><span class="tml">Accountant</span>${tmChip(c.accountant,'Accountant')}</span>`);
   if(c.reviewers.length)g.push(`<span class="tmg"><span class="tml">Reviewer</span>${c.reviewers.map(t=>tmChip(t,'Reviewer')).join('')}</span>`);
   if(!g.length)return '';
-  if(compact)return `<div class="tmrow" title="${esc([...c.planners.map(t=>t.name+' · Planner'),...(c.accountant?[c.accountant.name+' · Accountant']:[]),...c.reviewers.map(t=>t.name+' · Reviewer')].join('\n'))}">${[...c.planners,...(c.accountant?[c.accountant]:[]),...c.reviewers].map(t=>esc(tmIni(t))).join(' · ')}</div>`;
+  if(compact)return `<div class="tmrow" data-tip="${esc([...c.planners.map(t=>t.name+' · Planner'),...(c.accountant?[c.accountant.name+' · Accountant']:[]),...c.reviewers.map(t=>t.name+' · Reviewer')].join('\n'))}">${[...c.planners,...(c.accountant?[c.accountant]:[]),...c.reviewers].map(t=>esc(tmIni(t))).join(' · ')}</div>`;
   return `<div class="tmline">${g.join('')}</div>`;}
 function leavingTxt(p){if(!p.clientThrough)return '';const d=new Date(p.clientThrough+'T12:00:00');return 'Leaving '+MONTHS[d.getMonth()]+' '+d.getDate();}
 function cardHTML(p){
   const behind=monthsBehind(p),rs=p.reportStatus||'';
-  const badges=[`<span class="b ${behind>=2?'warn':(p.latestMonth?'ok':'warn')}">${p.latestMonth?'Production: '+fmtMonth(p.latestMonth):'No production data'}</span>`];
+  const badges=p.finOnly?['<span class="b">Financials only</span>']:[`<span class="b ${behind>=2?'warn':(p.latestMonth?'ok':'warn')}">${p.latestMonth?'Production: '+fmtMonth(p.latestMonth):'No production data'}</span>`];
   if(p.finClient&&!p.clientThrough)badges.push(`<span class="b ${/overdue/i.test(p.finStatus)?'warn':(/due soon/i.test(p.finStatus)?'due':(p.latestFin?'ok':''))}">${p.latestFin?'Financials: '+fmtMonth(p.latestFin):'Financials: not loaded'}</span>`);
   if(/overdue/i.test(rs))badges.push('<span class="b warn">Report overdue</span>');
   else if(p.reportDue)badges.push('<span class="b due">Report due</span>');
@@ -2277,7 +2280,7 @@ function renderDataHealth(){
   var el=document.getElementById('dataHealth');if(!el)return;
   if(!state.dhSec)state.dhSec=lsGet(LS+'_dhsec')||'prod';
   if(state.dhSec==='fin'){renderDhFin(el);return;}
-  var ps=state.practices.filter(function(p){return !p.clientThrough;});  // leaving clients aren't chased; count the rest for data currency; track-only are naturally excluded from report counts (reportDue=0)
+  var ps=state.practices.filter(function(p){return !p.clientThrough&&!p.finOnly;});  // leaving and financials-only clients aren't chased; count the rest for data currency; track-only are naturally excluded from report counts (reportDue=0)
   var n=ps.length;
   var current=ps.filter(function(p){return p.dataStatus==='Current';}).length;
   var awaiting=ps.filter(function(p){return p.dataStatus!=='Current';}).length;
@@ -2863,6 +2866,12 @@ function showLogin(msg){
     }catch(x){errEl.textContent='Sign-in failed. Try again.';}};
 }
 
+/* ---------- hover labels: any element with data-tip shows it instantly (the app's standard for quiet detail) ---------- */
+(function(){let tip=null;const show=(el,x,y)=>{if(!tip){tip=document.createElement('div');tip.className='fqtip';document.body.appendChild(tip);}
+  tip.textContent=el.getAttribute('data-tip');tip.style.display='block';const r=tip.getBoundingClientRect(),W=window.innerWidth;
+  tip.style.left=Math.max(8,Math.min(x+12,W-r.width-8))+'px';tip.style.top=(y+16+r.height>window.innerHeight?y-r.height-10:y+16)+'px';};
+  document.addEventListener('mousemove',e=>{const el=e.target&&e.target.closest?e.target.closest('[data-tip]'):null;if(el)show(el,e.clientX,e.clientY);else if(tip)tip.style.display='none';});
+  document.addEventListener('scroll',()=>{if(tip)tip.style.display='none';},true);})();
 /* ---------- boot ---------- */
 (async function(){
   try{
