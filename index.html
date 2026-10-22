@@ -650,7 +650,7 @@ async function apiRecords(resource,practice){
     if(!r.ok){let m='data '+r.status;try{m=(await r.json()).error||m;}catch(e){}throw new Error(m);}
     return (await r.json()).records||[];
   }
-  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo,PR.owner,PR.logoDark,PRX.accountant,PRX.finClient,PRX.tgtOH,PRX.histOH,PRX.idealCash,PRX.latestFin,PRX.finStatus,PRX.finDue],sort:[{fieldId:PR.name,direction:'asc'}]});
+  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo,PR.owner,PR.logoDark,PRX.accountant,PRX.finClient,PRX.tgtOH,PRX.histOH,PRX.idealCash,PRX.latestFin,PRX.finStatus,PRX.finDue,PRX.clientThrough,PRX.active],sort:[{fieldId:PR.name,direction:'asc'}]});
   if(resource==='financials')return atList(T_FIN,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[FI.link,[practice.id]]}]},sort:[{fieldId:FI.month,direction:'asc'}]}).catch(()=>[]);
   if(resource==='team')return atList(T_TEAM,{sort:[{fieldId:TM.name,direction:'asc'}]}).catch(()=>[]);
   if(resource==='monthly')return atList(T_MONTHLY,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[MD.link,[practice.id]]}]},sort:[{fieldId:MD.month,direction:'desc'}]});
@@ -688,7 +688,11 @@ async function loadPractices(){
     tgtOH:c[PRX.tgtOH]!=null&&c[PRX.tgtOH]!==''?num(c[PRX.tgtOH])*100:null,histOH:c[PRX.histOH]!=null&&c[PRX.histOH]!==''?num(c[PRX.histOH])*100:null,
     idealCash:c[PRX.idealCash]!=null&&c[PRX.idealCash]!==''?num(c[PRX.idealCash]):null,
     latestFin:(function(v){v=Array.isArray(v)?v[0]:v;return v?String(v).slice(0,7):'';})(c[PRX.latestFin]),
-    finStatus:c[PRX.finStatus]||'',finDue:c[PRX.finDue]?String(c[PRX.finDue]).slice(0,10):''};});
+    finStatus:c[PRX.finStatus]||'',finDue:c[PRX.finDue]?String(c[PRX.finDue]).slice(0,10):'',
+    clientThrough:c[PRX.clientThrough]?String(c[PRX.clientThrough]).slice(0,10):'',
+    active:c[PRX.active]==null||c[PRX.active]===''?true:num(c[PRX.active])===1};});
+  // Former clients (Client Through date passed -> Active 0) are hidden everywhere in the app; history stays in Airtable.
+  state.allPractices=state.practices;state.practices=state.practices.filter(p=>p.active);
 }
 async function loadPractice(p){
   const [mrecs,frecs,drecs,finrecs]=await Promise.all([apiRecords('monthly',p),apiRecords('forecasts',p).catch(()=>[]),apiRecords('doctors',p).catch(()=>[]),p.finClient?apiRecords('financials',p).catch(()=>[]):Promise.resolve([])]);
@@ -858,6 +862,7 @@ function renderShell(){
       ${p.type?`<span class="chip">${esc(p.type)}</span>`:''}
       ${p.stt?`<span class="chip">${esc(p.stt)}</span>`:''}
       ${p.renewal?`<span class="chip">Renewal: ${esc(p.renewal)}</span>`:''}
+      ${p.clientThrough?`<span class="chip warn">${leavingTxt(p)}</span>`:''}
       ${locChip}
       ${p.accountantId&&teamName(p.accountantId)?`<span class="chip">Accountant: ${esc(teamName(p.accountantId))}</span>`:''}
       <span class="spacer"></span>
@@ -1319,7 +1324,7 @@ function baseOpts(f){const grid=isDark()?'rgba(255,255,255,.09)':'#eef0f3',tc=is
 
 /* ---------- financials (v18) ---------- */
 const T_FIN='tblBELWpdR1EiowD4', T_TEAM='tbl34umujZ5FY3oPM';
-const PRX={finStatus:'fldnVrz5hA17oY2bu',finDue:'fldgvSiqZE0jrrUZ5',accountant:'fldc33uOdw3uKK89P',finClient:'fldJhvvtIPMyM2fRE',tgtOH:'fldQFJeY45kRJE3oX',histOH:'fldReDkA6dMjH60Kf',idealCash:'fldjpgU6elK2abfHr',latestFin:'fldYQ0vm1QsXWN1TC'};
+const PRX={clientThrough:'fldMrujppN7v2B03I',active:'fldHWBE5ZtqDOtAw4',finStatus:'fldnVrz5hA17oY2bu',finDue:'fldgvSiqZE0jrrUZ5',accountant:'fldc33uOdw3uKK89P',finClient:'fldJhvvtIPMyM2fRE',tgtOH:'fldQFJeY45kRJE3oX',histOH:'fldReDkA6dMjH60Kf',idealCash:'fldjpgU6elK2abfHr',latestFin:'fldYQ0vm1QsXWN1TC'};
 const TM={name:'fldKHHsAQs1jg76il',ini:'fldf98AlwbiO75IzB',title:'fldlv92zvcktMyqt6',email:'fld224ky0IzRNmNx0',role:'fldoe79CXo7KVvymt',my:'fld5m0aNHoF8U645q'};
 const FI={month:'fldXig4JLOvu1RqIe',link:'fldxt3lqqi4lQo2PS',basis:'fldrQEKd5wqyWBp0I',notes:'flduoRauXGPe9vcdR',detail:'fldNA3gi2gs4iRbRC',
   rptInc:'fld1uAoF6nmEj4kc3',rptNI:'fldke51QOSLTmSFkA',rptTA:'fldWg9FXD5YL4YBK9',
@@ -1860,7 +1865,7 @@ function expectedDataYm(){const n=new Date();let y=n.getFullYear(),m=n.getMonth(
 function ymNum(ym){const p=(ym||'').split('-');return p.length===2?(+p[0])*12+(+p[1]-1):-1;}
 function monthsBehind(p){if(!p.latestMonth)return 99;const d=ymNum(expectedDataYm())-ymNum(p.latestMonth);return d>0?d:0;}
 // attention = >1 month behind on data, an overdue report, or incomplete/flagged data — NOT just "last month not in yet"
-function needsAttention(p){return monthsBehind(p)>=2||/overdue/i.test(p.reportStatus||'')||(p.missing&&p.missing.length>0);}
+function needsAttention(p){return !p.clientThrough&&(monthsBehind(p)>=2||/overdue/i.test(p.reportStatus||'')||(p.missing&&p.missing.length>0));}
 function filteredHome(){const hf=state.hf,nq=norm(hf.q);
   const list=state.practices.filter(p=>{
     if(hf.type&&p.type!==hf.type)return false;
@@ -1871,14 +1876,16 @@ function filteredHome(){const hf=state.hf,nq=norm(hf.q);
     return true;});
   if(hf.behind)list.sort((a,b)=>monthsBehind(b)-monthsBehind(a)||a.name.localeCompare(b.name));
   return list;}
+function leavingTxt(p){if(!p.clientThrough)return '';const d=new Date(p.clientThrough+'T12:00:00');return 'Leaving '+MONTHS[d.getMonth()]+' '+d.getDate();}
 function cardHTML(p){
   const behind=monthsBehind(p),rs=p.reportStatus||'';
   const badges=[`<span class="b ${behind>=2?'warn':(p.latestMonth?'ok':'warn')}">${p.latestMonth?'Production: '+fmtMonth(p.latestMonth):'No production data'}</span>`];
-  if(p.finClient)badges.push(`<span class="b ${/overdue/i.test(p.finStatus)?'warn':(/due soon/i.test(p.finStatus)?'due':(p.latestFin?'ok':''))}">${p.latestFin?'Financials: '+fmtMonth(p.latestFin):'Financials: not loaded'}</span>`);
+  if(p.finClient&&!p.clientThrough)badges.push(`<span class="b ${/overdue/i.test(p.finStatus)?'warn':(/due soon/i.test(p.finStatus)?'due':(p.latestFin?'ok':''))}">${p.latestFin?'Financials: '+fmtMonth(p.latestFin):'Financials: not loaded'}</span>`);
   if(/overdue/i.test(rs))badges.push('<span class="b warn">Report overdue</span>');
   else if(p.reportDue)badges.push('<span class="b due">Report due</span>');
   if(p.missing&&p.missing.length)badges.push('<span class="b due">Incomplete</span>');
   if(p.trackOnly)badges.push('<span class="b">Track-only</span>');
+  if(p.clientThrough)badges.unshift(`<span class="b warn">${leavingTxt(p)}</span>`);
   return `<div class="card" data-id="${p.id}">
     <div class="logowrap${p.logoDark?' onDark':''}"><img src="${p.logo||LOGO4Q}" alt="" loading="lazy" crossorigin="anonymous" onerror="logoImgErr(this)"></div>
     <div class="cbody"><div class="cname">${esc(p.name)}</div><div class="cmeta">${esc(p.type||'')}${p.stt?' · '+esc(p.stt):''}${p.owner?' · '+esc(p.owner):''}</div></div>
@@ -2225,7 +2232,7 @@ function dhToggle(){var f=state.dhSec==='fin';return '<div class="secbar" id="dh
 function bindDhToggle(el){el.querySelectorAll('#dhSec button').forEach(function(b){b.onclick=function(){state.dhSec=b.dataset.sec;lsSet(LS+'_dhsec',state.dhSec);renderDataHealth();};});}
 /* Financials tracker (v18.3): reads Practices -> Financials Status / Financials Due (Airtable formulas; month M due the 14th of M+2). */
 function renderDhFin(el){
-  var ps=state.practices.filter(function(p){return p.finClient;}),n=ps.length;
+  var ps=state.practices.filter(function(p){return p.finClient&&!p.clientThrough;}),n=ps.length;
   var G=[['Overdue','var(--neg)','A month is past its deadline and not loaded'],['Due soon','var(--amber)','Next deadline within 14 days'],['Current','var(--pos)','Every month past its deadline is loaded'],['Not loaded yet','var(--ink-soft)','Financials client, waiting on the backfill']];
   var by={};G.forEach(function(g){by[g[0]]=[];});ps.forEach(function(p){(by[p.finStatus]||(by[p.finStatus]=[])).push(p);});
   var sel=state.dhFinSel||'';
@@ -2249,7 +2256,7 @@ function renderDataHealth(){
   var el=document.getElementById('dataHealth');if(!el)return;
   if(!state.dhSec)state.dhSec=lsGet(LS+'_dhsec')||'prod';
   if(state.dhSec==='fin'){renderDhFin(el);return;}
-  var ps=state.practices;  // count all practices for data currency; track-only are naturally excluded from report counts (reportDue=0)
+  var ps=state.practices.filter(function(p){return !p.clientThrough;});  // leaving clients aren't chased; count the rest for data currency; track-only are naturally excluded from report counts (reportDue=0)
   var n=ps.length;
   var current=ps.filter(function(p){return p.dataStatus==='Current';}).length;
   var awaiting=ps.filter(function(p){return p.dataStatus!=='Current';}).length;
@@ -2382,6 +2389,7 @@ async function signOut(){if(!confirm('Sign out of the FQ dashboard?'))return;lsS
 function finDueDate(ym){const y=+ym.slice(0,4),m=+ym.slice(5,7);return new Date(y,m+1,14);}      // month M due the 14th of M+2
 function mdShort(d){return MONTHS[d.getMonth()]+' '+d.getDate();}
 function finStatus(p,today){today=today||new Date();
+  if(p.clientThrough)return{k:4,badge:`<span class="mcbadge over">${leavingTxt(p)}</span>`,due:''};
   if(!p.finClient)return{k:3,badge:'<span class="mcbadge na">Not a financials client</span>',due:''};
   if(!p.latestFin)return{k:2,badge:'<span class="mcbadge na">No financials loaded yet</span>',due:''};
   const nx=shiftYm(p.latestFin,1),d=finDueDate(nx),late=today>d;
