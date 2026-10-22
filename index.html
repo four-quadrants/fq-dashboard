@@ -281,6 +281,11 @@ tr.fs-due td{background:rgba(232,134,58,.10)}     tr.grp.fs-due td{background:rg
 tr.fs-over td{background:rgba(163,45,45,.09)}     tr.grp.fs-over td{background:rgba(163,45,45,.18)}
 tr.fs-none td{background:rgba(120,128,140,.07)}   tr.grp.fs-none td{background:rgba(120,128,140,.15)}
 tr.prow.fs-current:hover td,tr.prow.fs-due:hover td,tr.prow.fs-over:hover td,tr.prow.fs-none:hover td{filter:brightness(.96)}
+.tmline{display:flex;flex-wrap:wrap;gap:14px;margin:6px 0 0;font-size:11.5px;color:var(--ink-soft)}
+.tmg{display:inline-flex;align-items:center;gap:4px}.tml{margin-right:2px}
+.tmi{display:inline-block;min-width:22px;padding:1px 5px;border-radius:999px;border:1px solid var(--line);font-size:10.5px;font-weight:600;color:var(--ink-soft);text-align:center;cursor:default}
+.tmi:hover{border-color:var(--navy);color:var(--navy)}
+.tmrow{font-size:10.5px;color:var(--ink-soft);letter-spacing:.02em;margin-top:6px;cursor:default}
 .vplist button.on,.vplist button:hover{border-color:var(--navy);background:var(--panel-2)}
 .mwcols{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:14px}
 @media(max-width:640px){.mwcols{grid-template-columns:1fr}}
@@ -650,7 +655,7 @@ async function apiRecords(resource,practice){
     if(!r.ok){let m='data '+r.status;try{m=(await r.json()).error||m;}catch(e){}throw new Error(m);}
     return (await r.json()).records||[];
   }
-  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo,PR.owner,PR.logoDark,PRX.accountant,PRX.finClient,PRX.tgtOH,PRX.histOH,PRX.idealCash,PRX.latestFin,PRX.finStatus,PRX.finDue,PRX.clientThrough,PRX.active],sort:[{fieldId:PR.name,direction:'asc'}]});
+  if(resource==='practices')return atList(T_PRACTICES,{fieldIds:[PR.name,PR.uid,PR.type,PR.state,PR.renewal,PR.dataStatus,PR.trackOnly,PR.latestData,PR.reportStatus,PR.reportDue,PR.missing,PR.logo,PR.owner,PR.logoDark,PRX.accountant,PRX.finClient,PRX.tgtOH,PRX.histOH,PRX.idealCash,PRX.latestFin,PRX.finStatus,PRX.finDue,PRX.clientThrough,PRX.active,PRX.teamLink],sort:[{fieldId:PR.name,direction:'asc'}]});
   if(resource==='financials')return atList(T_FIN,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[FI.link,[practice.id]]}]},sort:[{fieldId:FI.month,direction:'asc'}]}).catch(()=>[]);
   if(resource==='team')return atList(T_TEAM,{sort:[{fieldId:TM.name,direction:'asc'}]}).catch(()=>[]);
   if(resource==='monthly')return atList(T_MONTHLY,{filters:{operator:'and',operands:[{operator:'hasAnyOf',operands:[MD.link,[practice.id]]}]},sort:[{fieldId:MD.month,direction:'desc'}]});
@@ -690,7 +695,8 @@ async function loadPractices(){
     latestFin:(function(v){v=Array.isArray(v)?v[0]:v;return v?String(v).slice(0,7):'';})(c[PRX.latestFin]),
     finStatus:c[PRX.finStatus]||'',finDue:c[PRX.finDue]?String(c[PRX.finDue]).slice(0,10):'',
     clientThrough:c[PRX.clientThrough]?String(c[PRX.clientThrough]).slice(0,10):'',
-    active:c[PRX.active]==null||c[PRX.active]===''?true:num(c[PRX.active])===1};});
+    active:c[PRX.active]==null||c[PRX.active]===''?true:num(c[PRX.active])===1,
+    teamIds:(Array.isArray(c[PRX.teamLink])?c[PRX.teamLink].map(x=>x&&x.id?x.id:x):[])};});
   // Former clients (Client Through date passed -> Active 0) are hidden everywhere in the app; history stays in Airtable.
   state.allPractices=state.practices;state.practices=state.practices.filter(p=>p.active);
 }
@@ -864,13 +870,13 @@ function renderShell(){
       ${p.renewal?`<span class="chip">Renewal: ${esc(p.renewal)}</span>`:''}
       ${p.clientThrough?`<span class="chip warn">${leavingTxt(p)}</span>`:''}
       ${locChip}
-      ${p.accountantId&&teamName(p.accountantId)?`<span class="chip">Accountant: ${esc(teamName(p.accountantId))}</span>`:''}
       <span class="spacer"></span>
       <div class="repwrap"><button id="repBtn" class="repbtn">Reports <span class="rcar">▾</span></button><div id="repMenu" class="repmenu"><div class="rmh">Reports for this practice</div><a data-rep="pulse"><span class="rdt"></span><div>Practice Pulse<small>6-month / YTD health check</small></div></a><a data-rep="hygiene"><span class="rdt"></span><div>Hygiene<small>Share of production &amp; per-day</small></div></a>${repHasAssoc()?'<a data-rep="assoc"><span class="rdt"></span><div>Associate Productivity<small>Pool &amp; individuals</small></div></a>':''}${(state.finRows&&state.finRows.length)?'<div class="rmh" style="border-top:1px solid var(--line);margin-top:4px">Accounting</div><a data-rep="fin"><span class="rdt" style="background:var(--navy)"></span><div>Monthly Financial Report<small>Report + P&amp;L &amp; balance sheet</small></div></a>':''}</div></div>
       ${locSel}
       <span class="chip through ${overdue?'warn':''}">Production through ${latest?fmtMonth(latest.ym):'—'}</span>
       ${p.finClient?`<span class="chip through ${/overdue/i.test(p.finStatus)?'warn':''}">${p.latestFin?'Financials through '+fmtMonth(p.latestFin):'Financials not loaded yet'}</span>`:''}
     </div>
+    ${teamLine(p)}
     ${secBar}
     <div class="tabs">${shownTabs.map(t=>`<div class="tab${state.tab===t[0]?' active':''}" data-tab="${t[0]}">${esc(t[1])}</div>`).join('')}</div>
     <div id="v-overview" class="view${state.tab==='overview'?' active':''}"></div>
@@ -1324,7 +1330,7 @@ function baseOpts(f){const grid=isDark()?'rgba(255,255,255,.09)':'#eef0f3',tc=is
 
 /* ---------- financials (v18) ---------- */
 const T_FIN='tblBELWpdR1EiowD4', T_TEAM='tbl34umujZ5FY3oPM';
-const PRX={clientThrough:'fldMrujppN7v2B03I',active:'fldHWBE5ZtqDOtAw4',finStatus:'fldnVrz5hA17oY2bu',finDue:'fldgvSiqZE0jrrUZ5',accountant:'fldc33uOdw3uKK89P',finClient:'fldJhvvtIPMyM2fRE',tgtOH:'fldQFJeY45kRJE3oX',histOH:'fldReDkA6dMjH60Kf',idealCash:'fldjpgU6elK2abfHr',latestFin:'fldYQ0vm1QsXWN1TC'};
+const PRX={teamLink:'fldKnPMfSXwuGdXfW',clientThrough:'fldMrujppN7v2B03I',active:'fldHWBE5ZtqDOtAw4',finStatus:'fldnVrz5hA17oY2bu',finDue:'fldgvSiqZE0jrrUZ5',accountant:'fldc33uOdw3uKK89P',finClient:'fldJhvvtIPMyM2fRE',tgtOH:'fldQFJeY45kRJE3oX',histOH:'fldReDkA6dMjH60Kf',idealCash:'fldjpgU6elK2abfHr',latestFin:'fldYQ0vm1QsXWN1TC'};
 const TM={name:'fldKHHsAQs1jg76il',ini:'fldf98AlwbiO75IzB',title:'fldlv92zvcktMyqt6',email:'fld224ky0IzRNmNx0',role:'fldoe79CXo7KVvymt',my:'fld5m0aNHoF8U645q'};
 const FI={month:'fldXig4JLOvu1RqIe',link:'fldxt3lqqi4lQo2PS',basis:'fldrQEKd5wqyWBp0I',notes:'flduoRauXGPe9vcdR',detail:'fldNA3gi2gs4iRbRC',
   rptInc:'fld1uAoF6nmEj4kc3',rptNI:'fldke51QOSLTmSFkA',rptTA:'fldWg9FXD5YL4YBK9',
@@ -1876,6 +1882,21 @@ function filteredHome(){const hf=state.hf,nq=norm(hf.q);
     return true;});
   if(hf.behind)list.sort((a,b)=>monthsBehind(b)-monthsBehind(a)||a.name.localeCompare(b.name));
   return list;}
+/* Client team (v18.6): who's on each practice, live from My Clients (Practices -> "Team" mirror of Team -> My Clients).
+   Planner = Planning-team members with it in My Clients; Accountant = the official Accountant field; Reviewer = any other
+   accounting member with it in My Clients. Shown as quiet initials; hover for the name and role. */
+function clientTeam(p){const T={};(state.team||[]).forEach(t=>T[t.id]=t);const ids=new Set(p.teamIds||[]);
+  const pl=[],rv=[];ids.forEach(id=>{const t=T[id];if(!t)return;if(/planning/i.test(t.role))pl.push(t);else if(id!==p.accountantId)rv.push(t);});
+  const by=a=>a.sort((x,y)=>x.name.localeCompare(y.name));return{planners:by(pl),accountant:T[p.accountantId]||null,reviewers:by(rv)};}
+function tmIni(t){return userInitials(t.name);}
+function tmChip(t,role){return `<span class="tmi" title="${esc(t.name)} · ${role}">${esc(tmIni(t))}</span>`;}
+function teamLine(p,compact){const c=clientTeam(p),g=[];
+  if(c.planners.length)g.push(`<span class="tmg"><span class="tml">Planner</span>${c.planners.map(t=>tmChip(t,'Planner')).join('')}</span>`);
+  if(c.accountant)g.push(`<span class="tmg"><span class="tml">Accountant</span>${tmChip(c.accountant,'Accountant')}</span>`);
+  if(c.reviewers.length)g.push(`<span class="tmg"><span class="tml">Reviewer</span>${c.reviewers.map(t=>tmChip(t,'Reviewer')).join('')}</span>`);
+  if(!g.length)return '';
+  if(compact)return `<div class="tmrow" title="${esc([...c.planners.map(t=>t.name+' · Planner'),...(c.accountant?[c.accountant.name+' · Accountant']:[]),...c.reviewers.map(t=>t.name+' · Reviewer')].join('\n'))}">${[...c.planners,...(c.accountant?[c.accountant]:[]),...c.reviewers].map(t=>esc(tmIni(t))).join(' · ')}</div>`;
+  return `<div class="tmline">${g.join('')}</div>`;}
 function leavingTxt(p){if(!p.clientThrough)return '';const d=new Date(p.clientThrough+'T12:00:00');return 'Leaving '+MONTHS[d.getMonth()]+' '+d.getDate();}
 function cardHTML(p){
   const behind=monthsBehind(p),rs=p.reportStatus||'';
@@ -1888,7 +1909,7 @@ function cardHTML(p){
   if(p.clientThrough)badges.unshift(`<span class="b warn">${leavingTxt(p)}</span>`);
   return `<div class="card" data-id="${p.id}">
     <div class="logowrap${p.logoDark?' onDark':''}"><img src="${p.logo||LOGO4Q}" alt="" loading="lazy" crossorigin="anonymous" onerror="logoImgErr(this)"></div>
-    <div class="cbody"><div class="cname">${esc(p.name)}</div><div class="cmeta">${esc(p.type||'')}${p.stt?' · '+esc(p.stt):''}${p.owner?' · '+esc(p.owner):''}</div></div>
+    <div class="cbody"><div class="cname">${esc(p.name)}</div><div class="cmeta">${esc(p.type||'')}${p.stt?' · '+esc(p.stt):''}${p.owner?' · '+esc(p.owner):''}</div>${teamLine(p,true)}</div>
     <div class="cbadges">${badges.join('')}</div></div>`;}
 function bindCards(){document.querySelectorAll('#home .card[data-id]').forEach(c=>c.onclick=()=>pick(c.dataset.id));}
 function logoImgErr(img){
@@ -2395,12 +2416,14 @@ function finStatus(p,today){today=today||new Date();
   const nx=shiftYm(p.latestFin,1),d=finDueDate(nx),late=today>d;
   return{k:late?0:1,ready:true,badge:`<span class="mcbadge ready">&#10003; ${fmtMonth(p.latestFin)} report ready</span>`,
     due:`<div class="mcdue${late?' over':''}">${MONTHS[+nx.slice(5,7)-1]} ${late?'overdue &middot; was due':'due'} ${mdShort(d)}</div>`};}
-async function saveMine(ids){const v=viewer();if(!v)return;const before=v.my.slice();v.my=ids;renderMine();
+async function saveMine(ids){const v=viewer();if(!v)return;const before=v.my.slice();v.my=ids;
+  const syncTeam=list=>{const on=new Set(list);state.practices.forEach(p=>{const has=(p.teamIds||[]).includes(v.id);if(on.has(p.id)&&!has)p.teamIds=(p.teamIds||[]).concat([v.id]);if(!on.has(p.id)&&has)p.teamIds=p.teamIds.filter(t=>t!==v.id);});};
+  syncTeam(ids);renderMine();
   try{
     if(WEB){const r=await fetch('/api/myclients',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:v.id,practiceIds:ids})});
       if(!r.ok){let m='save failed ('+r.status+')';try{m=(await r.json()).error||m;}catch(e){}throw new Error(m);}}
     else{const r=await window.cowork.callMcpTool(UPD_TOOL,{baseId:BASE,tableId:T_TEAM,records:[{id:v.id,fields:{[TM.my]:ids}}]});if(r&&r.isError)throw new Error('save failed');}
-  }catch(e){v.my=before;renderMine();alert("Couldn't save your client list: "+(e.message||e));}}
+  }catch(e){v.my=before;syncTeam(before);renderMine();alert("Couldn't save your client list: "+(e.message||e));}}
 function renderMine(){
   const el=document.getElementById('myClients');if(!el)return;const v=viewer();
   if(!v){showLogin('Sign in with your work email to see your clients.');return;}
@@ -2408,7 +2431,7 @@ function renderMine(){
   const today=new Date(),list=v.my.map(id=>byId[id]).filter(Boolean).map(p=>({p,s:finStatus(p,today)}))
     .sort((a,b)=>a.s.k-b.s.k||a.p.name.localeCompare(b.p.name));
   const ready=list.filter(x=>x.s.ready).length,over=list.filter(x=>x.s.k===0).length;
-  const row=x=>{const p=x.p;return `<tr><td><span class="mcname" data-open="${p.id}">${esc(p.name)}</span><div class="mcsub">${esc(p.uid)}${p.owner?' &middot; '+esc(String(p.owner).replace(/\n/g,', ')):''}</div></td>
+  const row=x=>{const p=x.p;return `<tr><td><span class="mcname" data-open="${p.id}">${esc(p.name)}</span><div class="mcsub">${esc(p.uid)}${p.owner?' &middot; '+esc(String(p.owner).replace(/\n/g,', ')):''}</div>${teamLine(p,true)}</td>
     <td>${p.latestMonth?fmtMonth(p.latestMonth):'—'}</td><td>${p.latestFin?fmtMonth(p.latestFin):'—'}</td>
     <td>${x.s.badge}${x.s.due}</td>
     <td style="text-align:right;white-space:nowrap">${x.s.ready?`<button class="mcbtn pri" data-rep="${p.id}">Open report</button> `:''}<button class="mcbtn" data-open="${p.id}">Open</button> <button class="mcx" title="Remove from My Clients" data-rm="${p.id}">&times;</button></td></tr>`;};
