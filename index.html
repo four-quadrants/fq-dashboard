@@ -527,13 +527,13 @@ html[data-theme="dark"] .repbtn{background:#2f4c79}
 .fpage .qft{font-size:7.5pt;color:#666;margin-top:14px}.fpage .qmiss{padding:30px;text-align:center;color:#5b6472;border:1px dashed #ccc;border-radius:8px}
 @page finpg{size:letter;margin:0}
 @page finst{size:letter;margin:.55in .55in .6in}
-@page finbody{size:letter;margin:.4in}
+@page finbody{size:letter;margin:.3in .4in .35in}
 @media print{
   body.repfin .repbody{max-width:none;padding:0;margin:0}
   body.repfin .fhint{display:none}
   .fpage{box-shadow:none;margin:0;page:finpg;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .fpage.stmt{page:finst;padding:0;width:auto}
-  .fpage:not(.cover):not(.lh):not(.stmt){page:finbody;width:7.7in;height:10.2in;min-height:0;padding:.15in .2in;overflow:hidden}
+  .fpage:not(.cover):not(.lh):not(.stmt){page:finbody;width:7.7in;height:10.35in;min-height:0;padding:.05in .2in .1in;overflow:hidden}
   .fedit{border-bottom:none;background:none}
   .repmon{display:none!important}
 }
@@ -2611,8 +2611,8 @@ function reportAssociate(host){var assocs=repAssocList();if(!assocs.length){host
 function openReport(type){REP.type=type;REP.assoc='all';var ov=document.getElementById('repOverlay');if(!ov){ov=document.createElement('div');ov.id='repOverlay';ov.className='repoverlay';document.body.appendChild(ov);}ov.style.display='block';document.body.classList.add('repopen');renderReport();var rm=document.getElementById('repMenu');if(rm)rm.classList.remove('open');}
 function closeReport(){var ov=document.getElementById('repOverlay');if(ov)ov.style.display='none';document.body.classList.remove('repopen');}
 function renderReport(){var ov=document.getElementById('repOverlay');if(!ov)return;var title=REP.type==='fin'?'Monthly Financial Report':REP.type==='pulse'?'Practice Pulse':REP.type==='hygiene'?'Hygiene':'Associate Productivity';
-  var seg='';if(REP.type==='fin'){if(!REPF.layout){try{REPF.layout=localStorage.getItem(LS+'_finlay')||'classic';}catch(e){REPF.layout='classic';}}var fr=(state.finRows||[]).slice().reverse();if(!REPF.ym&&fr.length)REPF.ym=fr[0].ym;
-    seg='<select class="repmon" id="repMon">'+fr.map(function(r){return '<option value="'+r.ym+'"'+(r.ym===REPF.ym?' selected':'')+'>'+monthName(r.ym)+' '+r.ym.slice(0,4)+'</option>';}).join('')+'</select><div class="repseg"><span data-fl="current" class="'+(REPF.layout==='current'?'on':'')+'">Current look</span><span data-fl="classic" class="'+(REPF.layout==='classic'?'on':'')+'">Classic</span><span data-fl="score" class="'+(REPF.layout==='score'?'on':'')+'">Scorecard</span><span data-fl="cash" class="'+(REPF.layout==='cash'?'on':'')+'">Cash story</span><span data-fl="one" class="'+(REPF.layout==='one'?'on':'')+'">One-pager</span><span data-fl="trend" class="'+(REPF.layout==='trend'?'on':'')+'">Trends</span></div>';}
+  var seg='';if(REP.type==='fin'){REPF.layout='classic';var fr=(state.finRows||[]).slice().reverse();if(!REPF.ym&&fr.length)REPF.ym=fr[0].ym;
+    seg='<select class="repmon" id="repMon">'+fr.map(function(r){return '<option value="'+r.ym+'"'+(r.ym===REPF.ym?' selected':'')+'>'+monthName(r.ym)+' '+r.ym.slice(0,4)+'</option>';}).join('')+'</select>';}
   else if(REP.type==='pulse')seg='<div class="repseg"><span data-w="6mo" class="'+(REP.win==='6mo'?'on':'')+'">6-Month</span><span data-w="ytd" class="'+(REP.win==='ytd'?'on':'')+'">YTD</span></div>';else if(REP.type==='assoc')seg='<div class="repseg"><span data-aw="6mo" class="'+((REP.awin||'12mo')==='6mo'?'on':'')+'">6-Mo</span><span data-aw="12mo" class="'+((REP.awin||'12mo')==='12mo'?'on':'')+'">12-Mo</span><span data-aw="ytd" class="'+((REP.awin||'12mo')==='ytd'?'on':'')+'">YTD</span><span data-aw="all" class="'+((REP.awin||'12mo')==='all'?'on':'')+'">All</span></div>';
   ov.innerHTML='<div class="repbar"><div class="rept">'+esc(state.current.name)+' · '+title+' <span style="opacity:.45;font-size:11px;font-weight:400">build 09-08</span></div>'+seg+'<div class="repsp"></div><button class="repprint">Print / PDF</button><button class="repclose">Close ✕</button></div><div class="repbody" id="repBody"></div>';
   var body=document.getElementById('repBody');
@@ -2620,7 +2620,7 @@ function renderReport(){var ov=document.getElementById('repOverlay');if(!ov)retu
   ov.querySelector('.repclose').onclick=closeReport;
   ov.querySelector('.repprint').onclick=function(){if(REP.type==='fin')printFinDoc();else window.print();};
   ov.querySelectorAll('.repseg span[data-w]').forEach(function(s){s.onclick=function(){REP.win=s.getAttribute('data-w');renderReport();};});ov.querySelectorAll('.repseg span[data-aw]').forEach(function(s){s.onclick=function(){REP.awin=s.getAttribute('data-aw');renderReport();};});
-  ov.querySelectorAll('.repseg span[data-fl]').forEach(function(s){s.onclick=function(){REPF.layout=s.getAttribute('data-fl');try{localStorage.setItem(LS+'_finlay',REPF.layout);}catch(e){}renderReport();};});
+  
   var rmon=document.getElementById('repMon');if(rmon)rmon.onchange=function(){REPF.ym=rmon.value;renderReport();};
   document.body.classList.toggle('repfin',REP.type==='fin');
 }
@@ -2742,43 +2742,6 @@ function rptNotes(c){const mn=monthName(c.ym),n=c.items.map((i,ix)=>ed(i.txt+(ix
   if(c.budget!=null)n.push(ed('Dental supplies ran '+fM(Math.abs(c.dent-c.budget))+' '+(c.dent>c.budget?'over':'under')+' the '+fM(c.budget)+' monthly budget.'));
   return `<div class="notes"><b>Accountant notes</b><br>${(n.length?n:[ed('Add notes here')]).join('<br>')}</div>`;}
 /* 4. Cash story: leads with where the cash came from and went (month and year to date). */
-function layoutCash(c){const lbl=[],cs=[];const by={};state.finRows.forEach(r=>by[r.ym]=r);for(let i=11;i>=0;i--){const r=by[shiftYm(c.ym,-i)];if(r&&r.hasBS){lbl.push(MONTHS[+r.ym.slice(5,7)-1]);cs.push(r.cash);}}
-  return `<div class="fpage cs">${rptHead(c,'Cash story')}${rptKpis(c)}<div class="blk">${cwBlock(c,1)}</div><div class="blk">${cwBlock(c,c.mo,{compact:true})}</div>
-  ${cs.length>2?`<div class="sec">Cash balance · last ${cs.length} months${c.goal!=null?' · goal '+fK(c.goal,0):''}</div>${svgLine(lbl,[['Month-end cash',cs,'#1F3864']].concat(c.goal!=null?[['Goal',cs.map(()=>c.goal),'#E07B2A']]:[]),700,210)}`:''}
-  ${rptNotes(c)}<div class="ft">Cash basis · generated from the FQ Practice Data base · QuickBooks-format statements follow</div></div>`;}
-/* 5. One-pager: everything on a single page. */
-function layoutOne(c){const MN=MONTHS[c.mo-1];const rows=c.cats.map(x=>`<tr><td>${x.n}</td><td class="r">${fM(x.v)}</td><td class="r b">${c.inc?(x.v/c.inc*100).toFixed(1):'—'}%</td><td class="r m">${c.incY?(x.y/c.incY*100).toFixed(1):'—'}%</td></tr>`).join('');
-  return `<div class="fpage op">${rptHead(c,'Monthly summary')}${rptKpis(c)}<div class="blk">${cwBlock(c,1,{compact:true})}</div>
-  <div class="row"><div><div class="sec">Overhead by month · ${c.yr}</div>${svgOhBars(c)}</div><div><div class="sec">Expenses · % of income</div><table class="ct"><thead><tr><th></th><th>${MN}</th><th>${MN} %</th><th>YTD %</th></tr></thead><tbody>${rows}</tbody></table></div></div>
-  ${rptNotes(c)}<div class="ft">Cash basis · generated from the FQ Practice Data base · QuickBooks-format statements follow</div></div>`;}
-/* 6. Trends: the last 12 months at a glance. */
-function layoutTrend(c){const by={};state.finRows.forEach(r=>by[r.ym]=r);const L=[],inc=[],oh=[],ni=[],cash=[];
-  for(let i=11;i>=0;i--){const r=by[shiftYm(c.ym,-i)];if(!r)continue;L.push(MONTHS[+r.ym.slice(5,7)-1]);inc.push(r.income);oh.push(r.ohDollars);ni.push(r.ni);cash.push(r.hasBS?r.cash:null);}
-  return `<div class="fpage tr">${rptHead(c,'12-month trends')}${rptKpis(c)}
-  <div class="blk"><div class="sec">Income vs overhead · last ${L.length} months</div>${svgLine(L,[['Total income',inc,'#2f9e44'],['Overhead $',oh,'#E07B2A']],700,200)}</div>
-  <div class="row"><div><div class="sec">Net income by month</div>${svgLine(L,[['Net income',ni,'#1F3864']],330,170)}</div><div><div class="sec">Month-end cash</div>${svgLine(L,[['Cash',cash,'#4a90d9']],330,170)}</div></div>
-  <div class="blk">${cwBlock(c,c.mo,{compact:true})}</div>${rptNotes(c)}<div class="ft">Cash basis · generated from the FQ Practice Data base · QuickBooks-format statements follow</div></div>`;}
-function layoutCurrent(c){const nm=esc(state.current.name).toUpperCase(),mn=monthName(c.ym),pmn=c.pm?monthName(c.pm.ym):'last month';
-  const lbl=c.niSeries.map(x=>MONTHS[+x.ym.slice(5,7)-1]);const nis=c.niSeries.map(x=>x.ni);const ytdl=[];let run=0;c.niSeries.forEach((x,i)=>{if(x.ym.slice(0,4)!==c.yr){ytdl.push(x.ni);}else{run+=x.ni;ytdl.push(run);}});
-  const up=c.cash!=null&&c.cashP!=null&&c.cash>=c.cashP,cup=c.collP!=null&&c.coll>=c.collP;
-  return `<div class="fpage cover"><img class="ph" src="${FIN_ASSETS.cover}"><img class="lg" src="${FIN_ASSETS.logo}"><div class="nm">${nm}</div><div class="bar"></div><div class="mo">${mn.toUpperCase()}<br>FINANCIAL REPORT</div></div>
-  <div class="fpage lh"><img class="bg" src="${FIN_ASSETS.letterhead}"><div class="lb">
-    <h3>Monthly Financial Snapshot:</h3><ul><li>${mn}'s Net ${c.ni<0?'Loss':'Income'} - ${fK(c.ni)}</li><li>YTD Net Income - ${fK(c.niY)}</li></ul>
-    <div style="margin:6px 0 10px">${svgLine(lbl,[['Net Income/Loss',nis,'#F28C28'],['YTD Net Income/Loss',ytdl,'#6B7C8B']],700,250)}</div>
-    <div style="display:grid;grid-template-columns:1fr 330px;gap:12px"><div><ul>
-      ${c.cash!=null&&c.cashP!=null?`<li><b>Cash Balance - ${fK(c.cash)}</b><ul><li>${up?'Up':'Down'} ${fK(Math.abs(c.cash-c.cashP))} from ${pmn}; a ${Math.abs(fChg(c.cash,c.cashP)).toFixed(2)}% ${up?'increase':'decrease'}${c.goal!=null?'&mdash;this is '+(c.cash>=c.goal?'above':'below')+' the ideal account balance for the practice ('+fK(c.goal,0)+').':''}</li></ul></li>`:''}
-      <li><b>Collections - ${fK(c.coll)}</b><ul>${c.collP!=null?`<li>${cup?'Up':'Down'} ${fK(Math.abs(c.coll-c.collP))} from ${pmn}; a ${Math.abs(fChg(c.coll,c.collP)).toFixed(2)}% ${cup?'increase':'decrease'}</li>`:''}<li>${c.coll>=c.collAvg?'Above':'Below'} YTD average collections of ${fK(c.collAvg)}, by ${fK(Math.abs(c.coll-c.collAvg))}</li></ul></li>
-      ${c.dist!=null?`<li><b>Distributions - ${fK(c.dist)}</b></li>`:''}</ul></div>
-      <div>${c.cash!=null&&c.cashP!=null&&c.collP!=null?svgGroupBars(['Cash Balance','Collections'],[[mdy(c.pm.ym),[c.cashP,c.collP],'#6B7C8B'],[mdy(c.ym),[c.cash,c.coll],'#F28C28']],330,245):''}</div></div></div></div>
-  <div class="fpage lh"><img class="bg" src="${FIN_ASSETS.letterhead}"><div class="lb">
-    <table class="lt"><tr><td style="width:58%"><h3>Financial Management Recap:</h3><ul>
-      <li>${mn} overhead (exclusive of depreciation/amortization, Dr/spouse salary) = ${fP(c.oh)}<ul>
-        ${c.tgt!=null?`<li>${c.oh<=c.tgt?'Beat':'Missed'} the target overhead (${c.tgt.toFixed(0)}%) by ${Math.abs(c.oh-c.tgt).toFixed(2)}%</li>`:''}
-        <li>${ed('Historical overhead comparison &mdash; pending definition')}</li></ul></li>
-      <li>Items that affected ${mn} profits, overhead &amp; cashflow:<ul>${itemList(c,false)}</ul></li></ul></td>
-      <td style="text-align:center">${svgDonut(c.oh)}</td></tr></table>
-    <table class="lt" style="margin-top:28px"><tr><td style="width:46%">${svgCatBars(c)}</td><td><h3>Expense Categories to Note:</h3><ul>
-      ${c.cats.map(x=>`<li>${x.n} Expenses - ${x.v>=1000?fK(x.v):fM(x.v)}${x.n==='Minor'?`<ul><li>Marketing/Promotions - ${fK(c.r.mkt)}</li><li>Professional Fees - ${fK(c.r.prof)}</li></ul>`:''}${x.n==='Production'?`<ul><li>Dental Supplies - ${fK(c.dent)}${c.dentPct!=null?' ('+c.dentPct.toFixed(1)+'% of gross production)':''}${c.budget!=null?`<ul><li>This is ${fM(Math.abs(c.dent-c.budget))} ${c.dent>c.budget?'above':'below'} the monthly supply budget of ${fK(c.budget)}.</li></ul>`:''}</li><li>Implant Supplies - ${fM(c.r.implant)}</li><li>Lab Fees - ${fK(c.lab)}${c.labPct!=null?' ('+c.labPct.toFixed(1)+'% of gross production)':''}</li></ul>`:''}</li>`).join('')}</ul></td></tr></table></div></div><div class="fpage cs">${rptHead(c,'Cash story')}<div class="blk">${cwBlock(c,1)}</div><div class="blk">${cwBlock(c,c.mo)}</div><div class="ft">Cash basis · generated from the FQ Practice Data base</div></div>`;}
 function layoutClassic(c){const mn=monthName(c.ym),pmn=c.pm?monthName(c.pm.ym):'last month',lyLab=MONTHS[0]+'–'+MONTHS[c.mo-1]+' '+c.lyr;
   const ar=(d,t)=>d>=0?`<span class="pos">▲ ${t}</span>`:`<span class="neg">▼ ${t}</span>`;
   const stat=(l,v,s)=>`<div class="stat"><div class="sl">${l}</div><div class="sv">${v}</div><div class="ss">${s}</div></div>`;
@@ -2802,23 +2765,6 @@ function layoutClassic(c){const mn=monthName(c.ym),pmn=c.pm?monthName(c.pm.ym):'
   <div class="blk cwl">${cwBlock(c,1,{compact:true})}</div>
   <div class="row"><div><div class="line"><span class="nm">Dental supplies · ${mn}</span><span class="vv"${c.budget!=null?` style="color:${c.dent>c.budget?'#A32D2D':'#2f9e44'}"`:''}>${fK(c.dent)}</span></div><div class="note">${c.budget!=null?fM(Math.abs(c.dent-c.budget))+' '+(c.dent>c.budget?'over':'under')+' the '+fK(c.budget)+' monthly budget':'No supply budget set'}</div>${c.budget!=null?svgBullet(c.dent,c.budget,Math.max(c.dent,c.budget)*1.25,'Budget '+fK(c.budget),true):''}</div><div><div class="line"><span class="nm">Dental supplies · YTD</span><span class="vv"${c.dentPctY!=null?` style="color:${c.dentPctY>6?'#A32D2D':'#2f9e44'}"`:''}>${c.dentPctY!=null?fP(c.dentPctY,1):'—'}</span></div><div class="note">${fK(c.dentY)} YTD · % of gross production · target 5.5–6%</div>${c.dentPctY!=null?svgBullet(c.dentPctY,6,Math.max(c.dentPctY,6)*1.25,'Target 6%',true):''}</div></div>
 </div>`;}
-function layoutScore(c){const mn=monthName(c.ym),MN=MONTHS[c.mo-1];const t=(l,v,s,cls)=>`<div class="tile"><div class="l">${l}</div><div class="v ${cls||''}">${v}</div><div class="c">${s}</div></div>`;
-  const pc=(a,b)=>{const d=fChg(a,b);return d==null?'':`<span class="${d>=0?'pos':'neg'}">${d>=0?'▲':'▼'} ${Math.abs(d).toFixed(1)}%</span>`;};
-  const rows=c.cats.map(x=>`<tr><td>${x.n}</td><td>${c.inc?(x.v/c.inc*100).toFixed(1):'—'}%</td><td>${c.incY?(x.y/c.incY*100).toFixed(1):'—'}%</td></tr>`).join('');
-  const notes=c.items.map((i,ix)=>ed(i.txt+(ix===0&&c.exclOH!=null?'; without it, '+mn+' overhead would have been '+c.exclOH.toFixed(1)+'%.':'.')));
-  if(c.budget!=null)notes.push(ed('Dental supplies ran '+fM(Math.abs(c.dent-c.budget))+' '+(c.dent>c.budget?'over':'under')+' the '+fM(c.budget)+' monthly budget.'));
-  if(c.cash!=null&&c.goal!=null)notes.push(ed('Cash is '+(c.cash>=c.goal?'above':'below')+' the '+fM(c.goal)+' goal'+(c.ocf!=null?'; operations generated '+fK(c.ocf)+' this month.':'.')));
-  return `<div class="fpage sc"><div class="hd"><div><div class="s">${mn} ${c.yr} · Financial scorecard</div><div class="t">${esc(state.current.name)}</div></div><div class="s">Four Quadrants Advisory</div></div>
-  <div class="tiles">${t('Net income · '+MN,fM(c.ni),c.niLY!=null?'vs '+MN+' '+c.lyr+' '+fM(c.niLY)+' '+pc(c.ni,c.niLY):'')}${t('Net income · YTD',fM(c.niY),c.niYLY!=null?'vs '+MONTHS[0]+'–'+MN+' '+c.lyr+' '+pc(c.niY,c.niYLY):'')}
-    ${t('Overhead · '+MN,fP(c.oh,1),(c.tgt!=null?'Goal '+c.tgt.toFixed(0)+'% · ':'')+'YTD <b>'+fP(c.ohY,1)+'</b>',c.tgt!=null?(c.oh<=c.tgt?'pos':'neg'):'')}
-    ${c.cash!=null?t('Cash · '+mdy(c.ym),fM(c.cash),c.goal!=null?'Goal '+fM(c.goal)+' · <span class="'+(c.cash>=c.goal?'pos':'neg')+'">'+fK(Math.abs(c.cash-c.goal),0)+(c.cash>=c.goal?' above':' below')+'</span>':'',c.goal!=null?(c.cash>=c.goal?'pos':'neg'):''):t('Cash','—','Balance sheet not loaded')}
-    ${t('Dental supplies · '+MN,fM(c.dent),(c.dentPct!=null?c.dentPct.toFixed(1)+'% of gross production':'')+(c.budget!=null?' · budget '+fM(c.budget):''))}${t('Lab fees · '+MN,fM(c.lab),c.labPct!=null?c.labPct.toFixed(1)+'% of gross production':'')}</div>
-  <div class="two"><div class="box"><h4>Overhead by month · ${c.yr}${c.tgt!=null?' vs '+c.tgt.toFixed(0)+'% goal':''}</h4>${svgOhBars(c)}</div>
-    <div class="box"><h4>Expenses · % of income · ${MN} vs YTD</h4><table class="ct"><thead><tr><th></th><th>${MN}</th><th>YTD</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="c" style="margin-top:8px">Collections ${fM(c.coll)} (YTD avg ${fM(c.collAvg)})${c.dist!=null?' · Distributions '+fM(c.dist):''}${c.ocf!=null?' · Cash from operations '+fM(c.ocf):''}</div></div></div>
-  <div class="blk" style="margin-top:12px">${cwBlock(c,1,{compact:true})}</div>
-  <div class="notes"><b>Accountant notes</b><br>${(notes.length?notes:[ed('Add notes here')]).join('<br>')}</div>
-  <div class="ft">Cash basis · generated from the FQ Practice Data base · QuickBooks-format P&amp;L and balance sheet follow</div></div>`;}
 function stmtTree(lists){const root={name:'',kids:[],own:{},g:true},idx={'':root};
   lists.forEach(([col,entries])=>entries.forEach(e=>{const path=e[0],name=e[1],val=e[2],isg=e[3];let par='',node=root;
     if(path)path.split('>').forEach(seg=>{const key=par?par+'>'+seg:seg;if(!idx[key]){const n={name:seg,kids:[],own:{},g:true};node.kids.push(n);idx[key]=n;}node=idx[key];par=key;});
@@ -2879,10 +2825,10 @@ function scfStmtPage(c){const rows=state.finRows||[],S1=scfBuild(rows,c.ym,1),SY
 function printFinDoc(){
   const doc=document.querySelector('#repBody .fdoc');if(!doc)return;
   const styles=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');
-  const css=`@page{size:letter;margin:0}@page st{size:letter;margin:.55in .55in .6in}@page body{size:letter;margin:.4in}
+  const css=`@page{size:letter;margin:0}@page st{size:letter;margin:.55in .55in .6in}@page body{size:letter;margin:.3in .4in .35in}
     html,body{margin:0;padding:0;background:#fff!important;color:#111}
     .fpage{margin:0!important;box-shadow:none!important;width:8.5in;height:11in;min-height:0;break-after:page;page-break-after:always;break-inside:avoid;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .fpage:not(.cover):not(.lh):not(.stmt){page:body;width:7.7in;height:10.2in;padding:.15in .2in}
+    .fpage:not(.cover):not(.lh):not(.stmt){page:body;width:7.7in;height:10.35in;padding:.05in .2in .1in}
     .fpage.stmt{page:st;width:auto;height:auto;padding:0;overflow:visible;break-inside:auto}
     .fpage:last-child{break-after:auto;page-break-after:auto}
     .fedit{border-bottom:none!important;background:none!important}`;
@@ -2901,7 +2847,7 @@ function reportFinancial(host){
   const rows=(state.finRows||[]);if(!rows.length){host.innerHTML='<div class="rnote">No financials loaded for this practice yet.</div>';return;}
   if(!REPF.ym||!rows.some(r=>r.ym===REPF.ym))REPF.ym=rows[rows.length-1].ym;
   const c=finCtx(REPF.ym);
-  const pages=REPF.layout==='current'?layoutCurrent(c):REPF.layout==='score'?layoutScore(c):REPF.layout==='cash'?layoutCash(c):REPF.layout==='one'?layoutOne(c):REPF.layout==='trend'?layoutTrend(c):layoutClassic(c);
+  const pages=layoutClassic(c);   // Oct 30 2026: accounting chose this layout; the other five were removed
   host.innerHTML=`<div class="fhint">Text with an <span class="fedit">orange dashed underline</span> is a draft &mdash; click it to edit before printing. Edits aren't saved; the printed PDF is the record.<br>Overhead target ${c.tgt!=null?c.tgt.toFixed(0)+'%':'not set'} · cash goal ${c.goal!=null?fM(c.goal):'not set'}${c.budget!=null?' · supply budget '+fM(c.budget)+(c.p.supplyBudget!=null?' (from Business Notes)':' (avg dental supplies for the 12 months before the '+monthName(c.renewYm)+' '+c.renewYm.slice(0,4)+' renewal)'):''}</div>`
     +`<div class="fdoc">${pages}${statementsHTML(c)}</div>`;
 }
