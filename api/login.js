@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   if (!/^[^@\s']+@4quadrant\.com$/.test(email)) { res.status(401).json({ error: 'Use your @4quadrant.com work email.' }); return; }
   let rec;
   try { rec = await findByEmail(email); } catch (e) { res.status(502).json({ error: 'Could not reach Airtable. Try again.' }); return; }
-  if (!rec) { res.status(401).json({ error: "That email isn't on the FQ team list. Ask Austin to add you." }); return; }
+  if (!rec) { res.status(401).json({ error: "That email isn't on the FQ team list. Ask Bryan Fawcett to add you." }); return; }
   res.setHeader('Set-Cookie', [
     `ps_auth=${authToken(pw)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${MAX_AGE}`,
     `ps_user=${signUser(rec.id, pw)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${MAX_AGE}`]);
