@@ -525,15 +525,13 @@ html[data-theme="dark"] .repbtn{background:#2f4c79}
 .fpage table.qb tr.tot td{font-weight:700;border-top:1px solid #bbb}.fpage table.qb tr.sum td{font-weight:700}.fpage table.qb tr.qtop td{background:#eef0f2}
 .fpage table.qb tr.grand td{font-weight:700;border-top:1px solid #333;border-bottom:3px double #333}.fpage .ng{color:#c0392b}
 .fpage .qft{font-size:7.5pt;color:#666;margin-top:14px}.fpage .qmiss{padding:30px;text-align:center;color:#5b6472;border:1px dashed #ccc;border-radius:8px}
-@page finpg{size:letter;margin:0}
-@page finst{size:letter;margin:.55in .55in .6in}
-@page finbody{size:letter;margin:.3in .4in .35in}
 @media print{
+  @page{size:letter;margin:.3in .4in .35in}
   body.repfin .repbody{max-width:none;padding:0;margin:0}
   body.repfin .fhint{display:none}
-  .fpage{box-shadow:none;margin:0;page:finpg;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .fpage.stmt{page:finst;padding:0;width:auto}
-  .fpage:not(.cover):not(.lh):not(.stmt){page:finbody;width:7.7in;height:10.35in;min-height:0;padding:.05in .2in .1in;overflow:hidden}
+  .fpage{box-shadow:none;margin:0;break-after:page;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact;width:7.7in;height:10.35in;min-height:0;padding:.05in .2in .1in;overflow:hidden}
+  .fpage.stmt{width:7.7in;height:auto;padding:0 .15in;overflow:visible}
+  .fpage:last-child{break-after:auto;page-break-after:auto}
   .fedit{border-bottom:none;background:none}
   .repmon{display:none!important}
 }
@@ -2779,8 +2777,13 @@ function stmtRows(node,cols,depth,out,pc,base){node.kids.forEach(k=>{if(!tNz(k,c
   if(k.g){const own=cols.map(c=>k.own[c]),has=own.some(v=>v);out.push(`<tr${depth===0?' class="qtop"':''}><td class="n" style="padding-left:${pad}px">${esc(k.name)}</td>${own.map(v=>`<td>${has?qn(v,1):''}</td>`).join('')}${pc?`<td>${has?qp((k.own[pc]||0)/base*100):'0.0 %'}</td>`:''}</tr>`);
     stmtRows(k,cols,depth+1,out,pc,base);out.push(`<tr class="tot"><td class="n" style="padding-left:${pad}px">Total for ${esc(k.name)}</td>${cols.map(c=>`<td>${qn(tTot(k,c),1)}</td>`).join('')}${pc?`<td>${qp(tTot(k,pc)/base*100)}</td>`:''}</tr>`);}
   else out.push(`<tr><td class="n" style="padding-left:${pad}px">${esc(k.name)}</td>${cols.map(c=>`<td>${qn(k.own[c])}</td>`).join('')}${pc?`<td>${qp((k.own[pc]||0)/base*100)}</td>`:''}</tr>`);});}
-function stmtHead(title,period,hdrs){return `<thead><tr><td colspan="${hdrs.length+1}"><div class="qco">${esc(state.current.legalName||state.current.name)}</div><div class="qti">${title}</div><div class="qpe">${period}</div></td></tr>
+function stmtHead(title,period,hdrs){return `<thead><tr><td colspan="${hdrs.length+1}"><div class="qco">${esc(state.current.name)}</div><div class="qti">${title}</div><div class="qpe">${period}</div></td></tr>
   <tr><th></th><th colspan="${hdrs.length}" style="text-align:center">TOTAL</th></tr><tr><th></th>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;}
+/* Oct 30 2026: statements are split into pages here (not by the browser) so every printed page carries the practice
+   name, statement title, period and column headers, whatever browser prints it. ~27 rows fit a letter page with room for wrapped names. */
+const STMT_ROWS=27;
+function stmtPages(title,period,hdrs,R,foot){const pages=[];for(let i=0;i<R.length;i+=STMT_ROWS)pages.push(R.slice(i,i+STMT_ROWS));if(!pages.length)pages.push([]);
+  return pages.map((rows,k)=>`<div class="fpage stmt"><table class="qb">${stmtHead(title+(k?' (continued)':''),period,hdrs)}<tbody>${rows.join('')}</tbody></table><div class="qft">${foot}${pages.length>1?' · page '+(k+1)+' of '+pages.length:''}</div></div>`).join('');}
 function statementsHTML(c){const by={};state.finRows.forEach(r=>by[r.ym]=r);const out=[];
   const cur=c.r.detail&&c.r.detail.pl,MN=MONTHS[c.mo-1];
   if(cur&&cur.length){const ly=by[shiftYm(c.ym,-12)];
@@ -2791,7 +2794,7 @@ function statementsHTML(c){const by={};state.finRows.forEach(r=>by[r.ym]=r);cons
     one(inc);R.push('<tr class="qtop"><td class="n">Cost of Goods Sold</td><td></td><td></td><td></td><td>0.0 %</td></tr>');sum('Gross Profit',x=>tTot(inc,x));
     one(ex);sum('Net Operating Income',x=>tTot(inc,x)-tTot(ex,x));one(oi);one(oe);sum('Net Other Income',x=>tTot(oi,x)-tTot(oe,x));
     sum('Net Income',x=>tTot(inc,x)-tTot(ex,x)+tTot(oi,x)-tTot(oe,x),'grand');
-    out.push(`<div class="fpage stmt"><table class="qb">${stmtHead('Profit and Loss',monthName(c.ym)+' '+c.yr,[MN+' '+c.yr,MN+' '+c.lyr+' (PY)','Jan 1 - '+MN+' '+new Date(+c.yr,c.mo,0).getDate()+' '+c.yr+' (YTD)','% of Income'])}<tbody>${R.join('')}</tbody></table><div class="qft">Cash Basis · rebuilt from FQ Practice Data</div></div>`);
+    out.push(stmtPages('Profit and Loss',monthName(c.ym)+' '+c.yr,[MN+' '+c.yr,MN+' '+c.lyr+' (PY)','Jan 1 - '+MN+' '+new Date(+c.yr,c.mo,0).getDate()+' '+c.yr+' (YTD)','% of Income'],R,'Cash Basis · rebuilt from FQ Practice Data'));
   }else out.push('<div class="fpage stmt"><div class="qmiss">QuickBooks P&amp;L detail is not loaded for this month yet.</div></div>');
   const bs=c.r.detail&&c.r.detail.bs,pbs=c.pm&&c.pm.detail&&c.pm.detail.bs;
   if(bs&&bs.length){const t=stmtTree([['A',bs]].concat(pbs?[['P',pbs]]:[])),R=[];
@@ -2800,7 +2803,7 @@ function statementsHTML(c){const by={};state.finRows.forEach(r=>by[r.ym]=r);cons
         const a=tTot(k,'A'),p=tTot(k,'P');R.push(`<tr class="${depth===0?'grand':'tot'}"><td class="n" style="padding-left:${pad}px">Total for ${esc(k.name)}</td><td>${qn(a,1)}</td><td>${qn(p,1)}</td><td>${qn(a-p,1)||'$0.00'}</td></tr>`);}
       else{const a=k.own.A||0,p=k.own.P||0;R.push(`<tr><td class="n" style="padding-left:${pad}px">${esc(k.name)}</td><td>${qn(a)||'0.00'}</td><td>${qn(p)||'0.00'}</td><td>${qn(a-p)||'0.00'}</td></tr>`);}});
     rowsBS(t,0);const d=new Date(+c.yr,c.mo,0).getDate(),pd=c.pm?new Date(+c.pm.ym.slice(0,4),+c.pm.ym.slice(5,7),0).getDate():'';
-    out.push(`<div class="fpage stmt"><table class="qb">${stmtHead('Balance Sheet','As of '+MN+' '+d+', '+c.yr,['As of '+MN+' '+d+', '+c.yr,c.pm?'As of '+MONTHS[+c.pm.ym.slice(5,7)-1]+' '+pd+', '+c.pm.ym.slice(0,4)+' (PP)':'Prior period','$ Change (PP)'])}<tbody>${R.join('')}</tbody></table><div class="qft">Cash Basis · rebuilt from FQ Practice Data</div></div>`);
+    out.push(stmtPages('Balance Sheet','As of '+MN+' '+d+', '+c.yr,['As of '+MN+' '+d+', '+c.yr,c.pm?'As of '+MONTHS[+c.pm.ym.slice(5,7)-1]+' '+pd+', '+c.pm.ym.slice(0,4)+' (PP)':'Prior period','$ Change (PP)'],R,'Cash Basis · rebuilt from FQ Practice Data'));
   }else out.push('<div class="fpage stmt"><div class="qmiss">Balance sheet detail for '+monthName(c.ym)+' '+c.yr+' is not loaded yet. It will appear once the Balance Sheet by Month export is loaded.</div></div>');
   out.push(scfStmtPage(c));
   return out.join('');}
@@ -2819,17 +2822,16 @@ function scfStmtPage(c){const rows=state.finRows||[],S1=scfBuild(rows,c.ym,1),SY
   sec('fin','Financing Activities','Net cash provided by financing activities');
   line('Net cash increase for period',S=>S.inc,'sum');line('Cash at beginning of period',S=>S.c0,'',6);line('Cash at end of period',S=>S.c1,'grand');
   const ok=cols.every(S=>!S||S.ties);
-  return `<div class="fpage stmt"><table class="qb">${stmtHead('Statement of Cash Flows',monthName(c.ym)+' '+c.yr,[MN+' '+c.yr,'Jan 1 - '+MN+' '+d+' '+c.yr+' (YTD)'])}<tbody>${R.join('')}</tbody></table><div class="qft">Cash Basis · rebuilt from FQ Practice Data${ok?'':' · ⚠ cash change does not tie to the balance sheets'}</div></div>`;}
+  return stmtPages('Statement of Cash Flows',monthName(c.ym)+' '+c.yr,[MN+' '+c.yr,'Jan 1 - '+MN+' '+d+' '+c.yr+' (YTD)'],R,'Cash Basis · rebuilt from FQ Practice Data'+(ok?'':' · ⚠ cash change does not tie to the balance sheets'));}
 
 // Print the financial report in an isolated frame so the app's own layout can't interfere.
 function printFinDoc(){
   const doc=document.querySelector('#repBody .fdoc');if(!doc)return;
   const styles=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');
-  const css=`@page{size:letter;margin:0}@page st{size:letter;margin:.55in .55in .6in}@page body{size:letter;margin:.3in .4in .35in}
+  const css=`@page{size:letter;margin:.3in .4in .35in}
     html,body{margin:0;padding:0;background:#fff!important;color:#111}
-    .fpage{margin:0!important;box-shadow:none!important;width:8.5in;height:11in;min-height:0;break-after:page;page-break-after:always;break-inside:avoid;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .fpage:not(.cover):not(.lh):not(.stmt){page:body;width:7.7in;height:10.35in;padding:.05in .2in .1in}
-    .fpage.stmt{page:st;width:auto;height:auto;padding:0;overflow:visible;break-inside:auto}
+    .fpage{margin:0!important;box-shadow:none!important;width:7.7in;height:10.35in;min-height:0;padding:.05in .2in .1in;break-after:page;page-break-after:always;break-inside:avoid;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .fpage.stmt{width:7.7in;height:auto;padding:0 .15in;overflow:visible;break-inside:avoid}
     .fpage:last-child{break-after:auto;page-break-after:auto}
     .fedit{border-bottom:none!important;background:none!important}`;
   const name=(state.current&&state.current.name||'Practice')+' - '+monthName(REPF.ym)+' '+REPF.ym.slice(0,4)+' Financial Report';
