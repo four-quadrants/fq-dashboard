@@ -560,7 +560,7 @@ html[data-theme="dark"] .repbtn{background:#2f4c79}
       <h1 id="pageTitle">Practices</h1><span class="ro">read-only</span>
       <div class="sp"></div>
       <div class="pickerwrap">
-        <input id="picker" type="text" placeholder="Select or search a practice…" autocomplete="off">
+        <input id="picker" type="text" placeholder="Search practices by name or FQ ID…" autocomplete="off">
         <span class="caret">▾</span>
         <div id="menu" class="menu"></div>
       </div>
@@ -2794,7 +2794,7 @@ function statementsHTML(c){const by={};state.finRows.forEach(r=>by[r.ym]=r);cons
     one(inc);R.push('<tr class="qtop"><td class="n">Cost of Goods Sold</td><td></td><td></td><td></td><td>0.0 %</td></tr>');sum('Gross Profit',x=>tTot(inc,x));
     one(ex);sum('Net Operating Income',x=>tTot(inc,x)-tTot(ex,x));one(oi);one(oe);sum('Net Other Income',x=>tTot(oi,x)-tTot(oe,x));
     sum('Net Income',x=>tTot(inc,x)-tTot(ex,x)+tTot(oi,x)-tTot(oe,x),'grand');
-    out.push(stmtPages('Profit and Loss',monthName(c.ym)+' '+c.yr,[MN+' '+c.yr,MN+' '+c.lyr+' (PY)','Jan 1 - '+MN+' '+new Date(+c.yr,c.mo,0).getDate()+' '+c.yr+' (YTD)','% of Income'],R,'Cash Basis · rebuilt from FQ Practice Data'));
+    out.push(stmtPages('Profit and Loss',monthName(c.ym)+' '+c.yr,[MN+' '+c.yr,MN+' '+c.lyr+' (PY)','Jan 1 - '+MN+' '+new Date(+c.yr,c.mo,0).getDate()+' '+c.yr+' (YTD)','% of Income'],R,'Cash Basis'));
   }else out.push('<div class="fpage stmt"><div class="qmiss">QuickBooks P&amp;L detail is not loaded for this month yet.</div></div>');
   const bs=c.r.detail&&c.r.detail.bs,pbs=c.pm&&c.pm.detail&&c.pm.detail.bs;
   if(bs&&bs.length){const t=stmtTree([['A',bs]].concat(pbs?[['P',pbs]]:[])),R=[];
@@ -2803,7 +2803,7 @@ function statementsHTML(c){const by={};state.finRows.forEach(r=>by[r.ym]=r);cons
         const a=tTot(k,'A'),p=tTot(k,'P');R.push(`<tr class="${depth===0?'grand':'tot'}"><td class="n" style="padding-left:${pad}px">Total for ${esc(k.name)}</td><td>${qn(a,1)}</td><td>${qn(p,1)}</td><td>${qn(a-p,1)||'$0.00'}</td></tr>`);}
       else{const a=k.own.A||0,p=k.own.P||0;R.push(`<tr><td class="n" style="padding-left:${pad}px">${esc(k.name)}</td><td>${qn(a)||'0.00'}</td><td>${qn(p)||'0.00'}</td><td>${qn(a-p)||'0.00'}</td></tr>`);}});
     rowsBS(t,0);const d=new Date(+c.yr,c.mo,0).getDate(),pd=c.pm?new Date(+c.pm.ym.slice(0,4),+c.pm.ym.slice(5,7),0).getDate():'';
-    out.push(stmtPages('Balance Sheet','As of '+MN+' '+d+', '+c.yr,['As of '+MN+' '+d+', '+c.yr,c.pm?'As of '+MONTHS[+c.pm.ym.slice(5,7)-1]+' '+pd+', '+c.pm.ym.slice(0,4)+' (PP)':'Prior period','$ Change (PP)'],R,'Cash Basis · rebuilt from FQ Practice Data'));
+    out.push(stmtPages('Balance Sheet','As of '+MN+' '+d+', '+c.yr,['As of '+MN+' '+d+', '+c.yr,c.pm?'As of '+MONTHS[+c.pm.ym.slice(5,7)-1]+' '+pd+', '+c.pm.ym.slice(0,4)+' (PP)':'Prior period','$ Change (PP)'],R,'Cash Basis'));
   }else out.push('<div class="fpage stmt"><div class="qmiss">Balance sheet detail for '+monthName(c.ym)+' '+c.yr+' is not loaded yet. It will appear once the Balance Sheet by Month export is loaded.</div></div>');
   out.push(scfStmtPage(c));
   return out.join('');}
@@ -2822,7 +2822,7 @@ function scfStmtPage(c){const rows=state.finRows||[],S1=scfBuild(rows,c.ym,1),SY
   sec('fin','Financing Activities','Net cash provided by financing activities');
   line('Net cash increase for period',S=>S.inc,'sum');line('Cash at beginning of period',S=>S.c0,'',6);line('Cash at end of period',S=>S.c1,'grand');
   const ok=cols.every(S=>!S||S.ties);
-  return stmtPages('Statement of Cash Flows',monthName(c.ym)+' '+c.yr,[MN+' '+c.yr,'Jan 1 - '+MN+' '+d+' '+c.yr+' (YTD)'],R,'Cash Basis · rebuilt from FQ Practice Data'+(ok?'':' · ⚠ cash change does not tie to the balance sheets'));}
+  return stmtPages('Statement of Cash Flows',monthName(c.ym)+' '+c.yr,[MN+' '+c.yr,'Jan 1 - '+MN+' '+d+' '+c.yr+' (YTD)'],R,'Cash Basis'+(ok?'':' · ⚠ cash change does not tie to the balance sheets'));}
 
 // Print the financial report in an isolated frame so the app's own layout can't interfere.
 function printFinDoc(){
