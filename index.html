@@ -466,12 +466,17 @@ html[data-theme="dark"] .repbtn{background:#2f4c79}
 .rnote{padding:20px;color:var(--ink-soft)}
 
 /* monthly financial report (v18) */
-.repmon{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;background:var(--panel);color:var(--ink)}
+.repmonl{font-size:12px;color:var(--muted);margin-right:-4px}.repmon{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;background:var(--panel);color:var(--ink)}
 .fhint{max-width:8.5in;margin:0 auto 14px;font-size:12px;color:var(--ink-soft);line-height:1.5}
 .fdoc{color:#111}
 .fpage{width:8.5in;min-height:11in;background:#fff;margin:0 auto 22px;box-shadow:0 2px 14px rgba(0,0,0,.12);position:relative;overflow:hidden;padding:.55in .6in;box-sizing:border-box;font-family:Lato,'Helvetica Neue',Arial,sans-serif;font-size:10pt;color:#20242c}
 .fedit{border-bottom:1.5px dashed #E07B2A;background:rgba(224,123,42,.08);outline:none;cursor:text}
 .fpage .pos{color:#2f9e44}.fpage .neg{color:#A32D2D}
+.fpage.fcover{padding:0;height:11in}.fcover .ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.15;filter:grayscale(1)}
+.fcover .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 .6in}
+.fcover .lg{width:4.4in;margin-bottom:1.1in}.fcover .nm{font:700 36pt 'Arial Narrow',Arial,Helvetica,sans-serif;color:#5f7280;line-height:1.1;letter-spacing:.01em}
+.fcover .bar{width:4.6in;height:.3in;background:#F28C28;margin:.35in 0 1.2in}.fcover .ti{font:700 30pt 'Arial Narrow',Arial,Helvetica,sans-serif;color:#5f7280;line-height:1.25}
+.fcover .pe{margin-top:.3in;font:400 13pt Lato,Arial,sans-serif;color:#5f7280;letter-spacing:.04em}
 .fpage.cover{padding:0}.fpage.cover .ph{position:absolute;top:0;left:0;width:8.5in;height:11in;object-fit:cover;opacity:.16;filter:grayscale(1)}
 .fpage.cover .lg{position:absolute;top:1.15in;left:1.55in;width:5.4in}
 .fpage.cover .nm{position:absolute;top:3.1in;left:.6in;right:.6in;text-align:center;font:700 40pt Arial,Helvetica,sans-serif;color:#5f7280;line-height:1.15}
@@ -533,7 +538,7 @@ html[data-theme="dark"] .repbtn{background:#2f4c79}
   .fpage.stmt{width:7.7in;height:auto;padding:0 .15in;overflow:visible}
   .fpage:last-child{break-after:auto;page-break-after:auto}
   .fedit{border-bottom:none;background:none}
-  .repmon{display:none!important}
+  .repmon,.repmonl{display:none!important}
 }
 
 @media print{body.repopen>.shell{display:none!important}.repoverlay{position:static;display:block!important}.repbar .repprint,.repbar .repclose,.repseg{display:none!important}}
@@ -896,7 +901,7 @@ function renderShell(){
       ${p.finOnly?'<span class="chip">Financials only</span>':''}
       ${locChip}
       <span class="spacer"></span>
-      <div class="repwrap"><button id="repBtn" class="repbtn">Reports <span class="rcar">▾</span></button><div id="repMenu" class="repmenu"><div class="rmh">Reports for this practice</div>${finOnlyP?'':`<a data-rep="pulse"><span class="rdt"></span><div>Practice Pulse<small>6-month / YTD health check</small></div></a><a data-rep="hygiene"><span class="rdt"></span><div>Hygiene<small>Share of production &amp; per-day</small></div></a>${repHasAssoc()?'<a data-rep="assoc"><span class="rdt"></span><div>Associate Productivity<small>Pool &amp; individuals</small></div></a>':''}`}${(state.finRows&&state.finRows.length)?'<div class="rmh"'+(finOnlyP?'':' style="border-top:1px solid var(--line);margin-top:4px"')+'>Accounting</div><a data-rep="fin"><span class="rdt" style="background:var(--navy)"></span><div>Monthly Financial Report<small>Report + P&amp;L &amp; balance sheet</small></div></a>':''}</div></div>
+      <div class="repwrap"><button id="repBtn" class="repbtn">Reports <span class="rcar">▾</span></button><div id="repMenu" class="repmenu"><div class="rmh">Reports for this practice</div>${finOnlyP?'':`<a data-rep="pulse"><span class="rdt"></span><div>Practice Pulse<small>6-month / YTD health check</small></div></a><a data-rep="hygiene"><span class="rdt"></span><div>Hygiene<small>Share of production &amp; per-day</small></div></a>${repHasAssoc()?'<a data-rep="assoc"><span class="rdt"></span><div>Associate Productivity<small>Pool &amp; individuals</small></div></a>':''}`}${(state.finRows&&state.finRows.length)?'<div class="rmh"'+(finOnlyP?'':' style="border-top:1px solid var(--line);margin-top:4px"')+'>Accounting</div><a data-rep="fin"><span class="rdt" style="background:var(--navy)"></span><div>Monthly Financial Report<small>Report + P&amp;L &amp; balance sheet</small></div></a><a data-rep="finA"><span class="rdt" style="background:var(--navy)"></span><div>Annual Financial Report<small>Year to date · annual meetings</small></div></a>':''}</div></div>
       ${locSel}
       ${finOnlyP?'':`<span class="chip through ${overdue?'warn':''}">Production through ${latest?fmtMonth(latest.ym):'—'}</span>`}
       ${p.finClient?`<span class="chip through ${/overdue/i.test(p.finStatus)?'warn':''}">${p.latestFin?'Financials through '+fmtMonth(p.latestFin):'Financials not loaded yet'}</span>`:''}
@@ -1376,7 +1381,7 @@ const FIN_GROUPS=[
   {k:'Employee',keys:['assoc','hygW','asstW','boW','othW','staffTax','staffBen','empOth']},
   {k:'Equipment',keys:['equip']},
   {k:'Facility',keys:['rent','util','facOth']},
-  {k:'Minor',keys:['mkt','comm','prof','bizIns','loanInt','cardFees','office','taxes','minorOth']},
+  {k:'Minor',lab:'G&A',keys:['mkt','comm','prof','bizIns','loanInt','cardFees','office','taxes','minorOth']},
   {k:'Production',keys:['dentSup','lab','implant','botox','ortho','prodOth']}];
 const FIN_NUM_KEYS=Object.keys(FI).filter(k=>!['month','link','basis','notes','detail','oneoffs'].includes(k));
 /* One-offs (v18.2): the loader tags one-off accounts per month (ERC, Section 179, card rewards, personal-use auto,
@@ -2608,19 +2613,20 @@ function reportAssociate(host){var assocs=repAssocList();if(!assocs.length){host
 }
 function openReport(type){REP.type=type;REP.assoc='all';var ov=document.getElementById('repOverlay');if(!ov){ov=document.createElement('div');ov.id='repOverlay';ov.className='repoverlay';document.body.appendChild(ov);}ov.style.display='block';document.body.classList.add('repopen');renderReport();var rm=document.getElementById('repMenu');if(rm)rm.classList.remove('open');}
 function closeReport(){var ov=document.getElementById('repOverlay');if(ov)ov.style.display='none';document.body.classList.remove('repopen');}
-function renderReport(){var ov=document.getElementById('repOverlay');if(!ov)return;var title=REP.type==='fin'?'Monthly Financial Report':REP.type==='pulse'?'Practice Pulse':REP.type==='hygiene'?'Hygiene':'Associate Productivity';
-  var seg='';if(REP.type==='fin'){REPF.layout='classic';var fr=(state.finRows||[]).slice().reverse();if(!REPF.ym&&fr.length)REPF.ym=fr[0].ym;
-    seg='<select class="repmon" id="repMon">'+fr.map(function(r){return '<option value="'+r.ym+'"'+(r.ym===REPF.ym?' selected':'')+'>'+monthName(r.ym)+' '+r.ym.slice(0,4)+'</option>';}).join('')+'</select>';}
+function renderReport(){var ov=document.getElementById('repOverlay');if(!ov)return;var title=REP.type==='fin'?'Monthly Financial Report':REP.type==='finA'?'Annual Financial Report':REP.type==='pulse'?'Practice Pulse':REP.type==='hygiene'?'Hygiene':'Associate Productivity';
+  var seg='';if(REP.type==='fin'||REP.type==='finA'){REPF.layout='classic';var fr=(state.finRows||[]).slice().reverse();if(!REPF.ym&&fr.length)REPF.ym=fr[0].ym;
+    seg=(REP.type==='finA'?'<span class="repmonl">Year to date through</span>':'')+'<select class="repmon" id="repMon">'+fr.map(function(r){return '<option value="'+r.ym+'"'+(r.ym===REPF.ym?' selected':'')+'>'+monthName(r.ym)+' '+r.ym.slice(0,4)+'</option>';}).join('')+'</select>'+(REP.type==='finA'?'<div class="repseg"><span data-cmp="same" class="'+(REPF.cmp!=='full'?'on':'')+'">vs same months last year</span><span data-cmp="full" class="'+(REPF.cmp==='full'?'on':'')+'">vs full prior year</span></div>':'');}
   else if(REP.type==='pulse')seg='<div class="repseg"><span data-w="6mo" class="'+(REP.win==='6mo'?'on':'')+'">6-Month</span><span data-w="ytd" class="'+(REP.win==='ytd'?'on':'')+'">YTD</span></div>';else if(REP.type==='assoc')seg='<div class="repseg"><span data-aw="6mo" class="'+((REP.awin||'12mo')==='6mo'?'on':'')+'">6-Mo</span><span data-aw="12mo" class="'+((REP.awin||'12mo')==='12mo'?'on':'')+'">12-Mo</span><span data-aw="ytd" class="'+((REP.awin||'12mo')==='ytd'?'on':'')+'">YTD</span><span data-aw="all" class="'+((REP.awin||'12mo')==='all'?'on':'')+'">All</span></div>';
   ov.innerHTML='<div class="repbar"><div class="rept">'+esc(state.current.name)+' · '+title+' <span style="opacity:.45;font-size:11px;font-weight:400">build 09-08</span></div>'+seg+'<div class="repsp"></div><button class="repprint">Print / PDF</button><button class="repclose">Close ✕</button></div><div class="repbody" id="repBody"></div>';
   var body=document.getElementById('repBody');
-  if(REP.type==='fin')reportFinancial(body);else if(REP.type==='pulse')reportPulse(body);else if(REP.type==='hygiene')reportHygiene(body);else reportAssociate(body);
+  if(REP.type==='fin'||REP.type==='finA')reportFinancial(body,REP.type==='finA');else if(REP.type==='pulse')reportPulse(body);else if(REP.type==='hygiene')reportHygiene(body);else reportAssociate(body);
   ov.querySelector('.repclose').onclick=closeReport;
-  ov.querySelector('.repprint').onclick=function(){if(REP.type==='fin')printFinDoc();else window.print();};
+  ov.querySelector('.repprint').onclick=function(){if(REP.type==='fin'||REP.type==='finA')printFinDoc();else window.print();};
   ov.querySelectorAll('.repseg span[data-w]').forEach(function(s){s.onclick=function(){REP.win=s.getAttribute('data-w');renderReport();};});ov.querySelectorAll('.repseg span[data-aw]').forEach(function(s){s.onclick=function(){REP.awin=s.getAttribute('data-aw');renderReport();};});
   
+  ov.querySelectorAll('.repseg span[data-cmp]').forEach(function(s){s.onclick=function(){REPF.cmp=s.getAttribute('data-cmp');renderReport();};});
   var rmon=document.getElementById('repMon');if(rmon)rmon.onchange=function(){REPF.ym=rmon.value;renderReport();};
-  document.body.classList.toggle('repfin',REP.type==='fin');
+  document.body.classList.toggle('repfin',REP.type==='fin'||REP.type==='finA');
 }
 
 
@@ -2660,11 +2666,12 @@ function finCtx(ym){
     ni:r.ni,niLY:ly?ly.ni:null,niY:fsum(ytd,'ni'),niYLY:ytdLY.length?fsum(ytdLY,'ni'):null,
     cash:r.hasBS?r.cash:null,cashP:bsP?bsP.cash:null,coll:r.patDep,collP:pm?pm.patDep:null,collAvg:fsum(ytd,'patDep')/ytd.length,
     dist,distY:r.hasBS?-r.draws:null,distAvg:r.hasBS?-r.draws/mo:null,oh:r.oh,ohY:fOH(ytd),ohYLY:ytdLY.length?fOH(ytdLY):null,ocf,
-    dent:r.dentSup,dentY:fsum(ytd,'dentSup'),dentPctY:grossY?dentYg/grossY*100:null,lab:r.lab,gross:g,dentPct:g?r.dentSup/g*100:null,labPct:g?r.lab/g*100:null,
-    inc:r.income,incY:fsum(ytd,'income'),cats:FIN_GROUPS.map(G=>({n:G.k,v:r['g'+G.k],y:fsum(ytd,'g'+G.k)})),
+    dent:r.dentSup,dentY:fsum(ytd,'dentSup'),dentPctY:fsum(ytd,'income')?fsum(ytd,'dentSup')/fsum(ytd,'income')*100:null,lab:r.lab,gross:g,dentPct:g?r.dentSup/g*100:null,labPct:g?r.lab/g*100:null,
+    inc:r.income,incY:fsum(ytd,'income'),cats:FIN_GROUPS.map(G=>({n:G.lab||G.k,v:r['g'+G.k],y:fsum(ytd,'g'+G.k)})),
     items,exclOH,niSeries:[by[shiftYm(yr+'-01',-1)]].concat(ytd).filter(Boolean)};
 }
 function ed(t){return '<span class="fedit" contenteditable="true">'+t+'</span>';}
+function finCover(title,period){return `<div class="fpage fcover"><img class="ph" src="${FIN_ASSETS.cover}"><div class="in"><img class="lg" src="${FIN_ASSETS.logo}"><div class="nm">${esc(state.current.name).toUpperCase()}</div><div class="bar"></div><div class="ti">${title}</div><div class="pe">${period}</div></div></div>`;}
 function niceStep(span,n){n=n||4;const raw=Math.max(span,1)/n,mag=Math.pow(10,Math.floor(Math.log10(raw)));for(const m of [1,1.25,2,2.5,5,10])if(raw<=m*mag)return m*mag;return 10*mag;}
 function svgNiCols(ctx,w,h){const vals=ctx.ytd.map(x=>x.ni),mx=Math.max(...vals,1)*1.18,n=vals.length,gw=(w-10)/n,bw=gw*.62,base=h-18;
   let s=`<svg viewBox="0 0 ${w} ${h}" width="100%" font-family="Lato,Arial"><line x1="5" x2="${w-5}" y1="${base}" y2="${base}" stroke="#e3e6eb"/>`;
@@ -2720,8 +2727,8 @@ function cwData(endYm,months){const S=scfBuild(state.finRows||[],endYm,months);i
   S.L.op.forEach(([l,v])=>g.wc+=v);S.L.inv.forEach(([l,v])=>{if(/accum/i.test(l)&&/deprec|amort/i.test(l))g.dep+=v;else g.capex+=v;});
   S.L.fin.forEach(([l,v])=>{if(/distribut|draw|retained|stock|capital|equity|contribut|member/i.test(l)){if(v<0)g.dist+=v;else g.contrib+=v;}else{if(v>0)g.newDebt+=v;else g.principal+=v;}});
   const src=[],use=[],put=(lab,v,col,lt)=>{if(Math.abs(v||0)<50)return;(v>0?src:use).push([lab,Math.abs(v),col,lt]);};
-  put(S.ni+g.dep<0?'Covering the month\'s loss':'Cash earnings',S.ni+g.dep,S.ni+g.dep<0?'#E07B2A':'#2f9e44');put('New loans',g.newDebt,'#4a90d9');put('Owner contributions',g.contrib,'#7c5cbf');
-  put('Credit card & payroll balances',g.wc,'#9aa1ab');put('Equipment & buildout',g.capex,'#e8863a');put('Loan principal paid',g.principal,'#A32D2D');put('Owner distributions',g.dist,'#1f3864');
+  put(S.ni+g.dep<0?(months===1?'Covering the month\'s loss':'Covering the loss'):'Cash earnings',S.ni+g.dep,S.ni+g.dep<0?'#E07B2A':'#2f9e44');put('New loans',g.newDebt,'#4a90d9');put('Owner contributions',g.contrib,'#7c5cbf');
+  put('Credit card & payroll liabilities',g.wc,'#9aa1ab');put('Equipment & buildout',g.capex,'#e8863a');put('Loan principal paid',g.principal,'#A32D2D');put('Owner distributions',g.dist,'#1f3864');
   if(S.inc>=0.5)use.push(['Added to cash',S.inc,'#9cc3ea',1]);else if(S.inc<=-0.5)src.push(['Drawn from cash',-S.inc,'#9cc3ea',1]);
   const tot=Math.max(src.reduce((a,x)=>a+x[1],0),use.reduce((a,x)=>a+x[1],0))||1;return{S,g,src,use,tot};}
 function cwBlock(c,months,opt){opt=opt||{};const X=cwData(c.ym,months);const per=months===1?monthName(c.ym):(months===c.mo?'Year to date':'Last '+months+' months');
@@ -2761,7 +2768,7 @@ function layoutClassic(c){const mn=monthName(c.ym),pmn=c.pm?monthName(c.pm.ym):'
 </div>
     <div><div class="sec">Expense categories</div><table class="ct"><thead><tr><th></th><th>${mn}</th><th></th><th>% of income</th><th>YTD %</th></tr></thead><tbody>${rows}</tbody></table></div></div>
   <div class="blk cwl">${cwBlock(c,1,{compact:true})}</div>
-  <div class="row"><div><div class="line"><span class="nm">Dental supplies · ${mn}</span><span class="vv"${c.budget!=null?` style="color:${c.dent>c.budget?'#A32D2D':'#2f9e44'}"`:''}>${fK(c.dent)}</span></div><div class="note">${c.budget!=null?fM(Math.abs(c.dent-c.budget))+' '+(c.dent>c.budget?'over':'under')+' the '+fK(c.budget)+' monthly budget':'No supply budget set'}</div>${c.budget!=null?svgBullet(c.dent,c.budget,Math.max(c.dent,c.budget)*1.25,'Budget '+fK(c.budget),true):''}</div><div><div class="line"><span class="nm">Dental supplies · YTD</span><span class="vv"${c.dentPctY!=null?` style="color:${c.dentPctY>6?'#A32D2D':'#2f9e44'}"`:''}>${c.dentPctY!=null?fP(c.dentPctY,1):'—'}</span></div><div class="note">${fK(c.dentY)} YTD · % of gross production · target 5.5–6%</div>${c.dentPctY!=null?svgBullet(c.dentPctY,6,Math.max(c.dentPctY,6)*1.25,'Target 6%',true):''}</div></div>
+  <div class="row"><div><div class="line"><span class="nm">Dental supplies · ${mn}</span><span class="vv"${c.budget!=null?` style="color:${c.dent>c.budget?'#A32D2D':'#2f9e44'}"`:''}>${fK(c.dent)}</span></div><div class="note">${c.budget!=null?fM(Math.abs(c.dent-c.budget))+' '+(c.dent>c.budget?'over':'under')+' the '+fK(c.budget)+' monthly budget':'No supply budget set'}</div>${c.budget!=null?svgBullet(c.dent,c.budget,Math.max(c.dent,c.budget)*1.25,'Budget '+fK(c.budget),true):''}</div><div><div class="line"><span class="nm">Dental supplies · YTD % of gross profit</span><span class="vv"${c.dentPctY!=null?` style="color:${c.dentPctY>6?'#A32D2D':'#2f9e44'}"`:''}>${c.dentPctY!=null?fP(c.dentPctY,1):'—'}</span></div><div class="note">${fK(c.dentY)} dental supplies ÷ ${fK(c.incY)} gross profit (P&amp;L) · target 5.5–6%</div>${c.dentPctY!=null?svgBullet(c.dentPctY,6,Math.max(c.dentPctY,6)*1.25,'Target 6%',true):''}</div></div>
 </div>`;}
 function stmtTree(lists){const root={name:'',kids:[],own:{},g:true},idx={'':root};
   lists.forEach(([col,entries])=>entries.forEach(e=>{const path=e[0],name=e[1],val=e[2],isg=e[3];let par='',node=root;
@@ -2809,12 +2816,12 @@ function statementsHTML(c){const by={};state.finRows.forEach(r=>by[r.ym]=r);cons
   return out.join('');}
 /* Statement of cash flows page for the Monthly Financial Report: report month + YTD, QuickBooks indirect layout
    (same engine as Financials -> Statements, which ties to accounting's QBO statement to the cent). */
-function scfStmtPage(c){const rows=state.finRows||[],S1=scfBuild(rows,c.ym,1),SY=scfBuild(rows,c.ym,c.mo),MN=MONTHS[c.mo-1],cols=[S1,SY];
+function scfStmtPage(c,ytdOnly){const rows=state.finRows||[],S1=ytdOnly?null:scfBuild(rows,c.ym,1),SY=scfBuild(rows,c.ym,c.mo),MN=MONTHS[c.mo-1],cols=ytdOnly?[SY]:[S1,SY],blank=cols.map(()=>'<td></td>').join('');
   if(!S1&&!SY)return '<div class="fpage stmt"><div class="qmiss">The statement of cash flows needs this month&rsquo;s and last month&rsquo;s balance sheets. It will appear once they are loaded.</div></div>';
   const R=[],d=new Date(+c.yr,c.mo,0).getDate();
   const line=(lab,f,cls,pad)=>R.push(`<tr${cls?` class="${cls}"`:''}><td class="n" style="padding-left:${pad||6}px">${lab}</td>${cols.map(S=>`<td>${S?(qn(f(S),cls?1:0)||(cls?'$0.00':'0.00')):'&mdash;'}</td>`).join('')}</tr>`);
-  const sec=(k,title,tot)=>{R.push(`<tr class="qtop"><td class="n">${title}</td><td></td><td></td></tr>`);
-    if(k==='op'){line('Net Income',S=>S.ni,'',17);R.push('<tr><td class="n" style="padding-left:17px">Adjustments to reconcile Net Income to Net Cash provided by operations:</td><td></td><td></td></tr>');}
+  const sec=(k,title,tot)=>{R.push(`<tr class="qtop"><td class="n">${title}</td>${blank}</tr>`);
+    if(k==='op'){line('Net Income',S=>S.ni,'',17);R.push('<tr><td class="n" style="padding-left:17px">Adjustments to reconcile Net Income to Net Cash provided by operations:</td>'+blank+'</tr>');}
     [...new Set(cols.flatMap(S=>S?S.L[k].map(x=>x[0]):[]))].forEach(l=>line(esc(l),S=>{const x=S.L[k].find(y=>y[0]===l);return x?x[1]:0;},'',28));
     line(tot,S=>S.t[k],'tot',6);};
   sec('op','Operating Activities','Net cash provided by operating activities');
@@ -2822,7 +2829,94 @@ function scfStmtPage(c){const rows=state.finRows||[],S1=scfBuild(rows,c.ym,1),SY
   sec('fin','Financing Activities','Net cash provided by financing activities');
   line('Net cash increase for period',S=>S.inc,'sum');line('Cash at beginning of period',S=>S.c0,'',6);line('Cash at end of period',S=>S.c1,'grand');
   const ok=cols.every(S=>!S||S.ties);
-  return stmtPages('Statement of Cash Flows',monthName(c.ym)+' '+c.yr,[MN+' '+c.yr,'Jan 1 - '+MN+' '+d+' '+c.yr+' (YTD)'],R,'Cash Basis'+(ok?'':' · ⚠ cash change does not tie to the balance sheets'));}
+  return stmtPages('Statement of Cash Flows',ytdOnly?'January - '+monthName(c.ym)+' '+c.yr:monthName(c.ym)+' '+c.yr,(ytdOnly?[]:[MN+' '+c.yr]).concat(['Jan 1 - '+MN+' '+d+' '+c.yr+' (YTD)']),R,'Cash Basis'+(ok?'':' · ⚠ cash change does not tie to the balance sheets'));}
+
+/* ---------- Annual Financial Report (Nov 2026) ----------
+   Year-to-date version of the Monthly Financial Report, for a client's annual meeting (first-year clients especially).
+   Same data and engine as the monthly report; every figure is year to date through the selected month.
+   Comparisons: cash vs Dec 31 last year; collections, distributions, overhead and expense mix vs the same months
+   last year; statements = last full year vs YTD (P&L), month-end vs Dec 31 last year (balance sheet), YTD cash flows.
+   Prior-year comparisons are only shown when every month of that prior period is loaded. */
+function finCtxA(ym){const c=finCtx(ym);if(!c)return null;
+  const by={};state.finRows.forEach(r=>by[r.ym]=r);
+  const lyFull=c.ytdLY.length===c.mo;                                   // same months last year, all loaded
+  const lyEnd=by[c.lyr+'-'+ym.slice(5,7)],dec=by[c.lyr+'-12'];
+  const prod={};months().forEach(m=>prod[m.ym]=m);
+  const ytdG=c.ytd.filter(x=>prod[x.ym]&&prod[x.ym].grossP);
+  const pyRows=state.finRows.filter(x=>x.ym.slice(0,4)===c.lyr);
+  return Object.assign(c,{lyFull,
+    cashDec:dec&&dec.hasBS?dec.cash:null,
+    collY:fsum(c.ytd,'patDep'),collYLY:lyFull?fsum(c.ytdLY,'patDep'):null,collMoAvg:fsum(c.ytd,'patDep')/c.mo,
+    distYLY:lyFull&&lyEnd&&lyEnd.hasBS?-lyEnd.draws:null,
+    incYLY:lyFull?fsum(c.ytdLY,'income'):null,
+    catsA:FIN_GROUPS.map(G=>({n:G.lab||G.k,y:fsum(c.ytd,'g'+G.k),ly:lyFull?fsum(c.ytdLY,'g'+G.k):null})),
+    dentAvg:fsum(c.ytd,'dentSup')/c.mo,dentYg:fsum(ytdG,'dentSup'),grossY:ytdG.reduce((a,x)=>a+prod[x.ym].grossP,0),gMonths:ytdG.length,
+    pyRows,pyFull:pyRows.length===12});}
+function layoutAnnual(c){const span=MONTHS[0]+'–'+MONTHS[c.mo-1],per=span+' '+c.yr,lyLab=span+' '+c.lyr,decLab='Dec 31, '+c.lyr;
+  const ar=(d,t)=>d>=0?`<span class="pos">▲ ${t}</span>`:`<span class="neg">▼ ${t}</span>`,pc=(a,b)=>b?' ('+Math.abs(fChg(a,b)).toFixed(1)+'%)':'';
+  const stat=(l,v,s)=>`<div class="stat"><div class="sl">${l}</div><div class="sv">${v}</div><div class="ss">${s}</div></div>`;
+  const d1=c.lyFull&&c.niYLY?fChg(c.niY,c.niYLY):null,d=new Date(+c.yr,c.mo,0).getDate();
+  const incY=c.incY||0,mxp=Math.max(...c.catsA.map(x=>incY?x.y/incY*100:0),1);
+  const rows=c.catsA.map(x=>`<tr><td>${x.n}</td><td class="r">${fM(x.y)}</td><td class="bar"><div class="trk"><div style="width:${(incY?x.y/incY*100:0)/mxp*100}%"></div></div></td><td class="r b">${incY?(x.y/incY*100).toFixed(1):'—'}%</td><td class="r m">${x.ly!=null&&c.incYLY?(x.ly/c.incYLY*100).toFixed(1)+'%':'—'}</td></tr>`).join('');
+  const ohMx=v=>Math.max(100,(v||0)*1.05);   // overhead bars run to 100% so the target sits inside the bar
+  const dentPct=c.incY?c.dentY/c.incY*100:null;   // accounting: % of gross profit, read straight off the P&L
+  return `<div class="fpage cl"><div class="hd"><div><div class="s">Annual Financial Report · Year to Date ${c.yr}</div><div class="t">${esc(state.current.name)}</div></div><img src="${FIN_ASSETS.logo}" style="width:2.1in"></div>
+  <div class="row"><div><div class="sec">YTD financial snapshot · ${per}</div>
+      <div class="stats">${stat('YTD net income',fK(c.niY),c.lyFull&&c.niYLY!=null?ar(c.niY-c.niYLY,fK(Math.abs(c.niY-c.niYLY))+(c.niYLY>0?' ('+Math.abs(d1).toFixed(1)+'%)':''))+' vs '+lyLab+': '+fK(c.niYLY):'')}${stat('Monthly average',fK(c.niY/c.mo),c.mo+' months')}</div>
+      <div class="note">Net income by month, ${c.yr}</div>${svgNiCols(c,330,150)}</div>
+    <div><div class="sec">Cash &amp; collections</div>
+      ${c.cash!=null?`<div class="line"><span class="nm">Cash balance · as of ${c.mo}/${d}/${String(c.yr).slice(2)}</span><span class="vv"${c.goal!=null?` style="color:${c.cash>=c.goal?'#2f9e44':'#A32D2D'}"`:''}>${fK(c.cash)}</span></div><div class="note">${c.cashDec!=null?ar(c.cash-c.cashDec,fK(Math.abs(c.cash-c.cashDec)))+' vs '+decLab+': '+fK(c.cashDec):''}${c.goal!=null?' · goal '+fK(c.goal,0):''}</div>${c.goal!=null?svgBullet(c.cash,c.goal,Math.max(c.cash,c.goal)*1.25,'Goal '+fK(c.goal,0)):''}`:'<div class="note">Balance sheet not loaded for this month.</div>'}
+      <div class="line"><span class="nm">Collections · YTD</span><span class="vv"${c.collYLY!=null?` style="color:${c.collY>=c.collYLY?'#2f9e44':'#A32D2D'}"`:''}>${fK(c.collY)}</span></div><div class="note">${c.collYLY!=null?ar(c.collY-c.collYLY,fK(Math.abs(c.collY-c.collYLY))+pc(c.collY,c.collYLY))+' vs '+lyLab+': '+fK(c.collYLY)+' · ':''}Monthly average ${fK(c.collMoAvg)}</div>${c.collYLY!=null?svgBullet(c.collY,c.collYLY,Math.max(c.collY,c.collYLY)*1.25,lyLab+' '+fK(c.collYLY)):''}
+      ${c.distY!=null?`<div class="line"><span class="nm">Distributions · YTD</span><span class="vv">${fK(c.distY)}</span></div><div class="note">${c.distY>0?'Monthly average '+fK(c.distY/c.mo):'No distributions so far this year'}${c.distYLY!=null?' · '+lyLab+': '+fK(c.distYLY):''}</div>${c.distYLY>0?svgBullet(c.distY,c.distYLY,Math.max(c.distY,c.distYLY)*1.25,lyLab+' '+fK(c.distYLY),true):''}`:''}</div></div>
+  <div class="row"><div><div class="sec">Financial management recap</div>
+      <div class="line"><span class="nm">YTD overhead</span><span class="vv"${c.tgt!=null?` style="color:${c.ohY>c.tgt?'#A32D2D':'#2f9e44'}"`:''}>${fP(c.ohY,1)}</span></div>
+      <div class="note">Excl. depreciation/amortization and Dr/spouse salary${c.tgt!=null?' · '+Math.abs(c.ohY-c.tgt).toFixed(1)+' pts '+(c.ohY>c.tgt?'over':'under')+' the '+c.tgt.toFixed(0)+'% target':''}${c.lyFull&&c.ohYLY!=null?' · '+lyLab+': '+fP(c.ohYLY,1):''}</div>${c.tgt!=null?svgBullet(c.ohY,c.tgt,ohMx(c.ohY),'Target '+c.tgt.toFixed(0)+'%',true):''}
+      </div>
+    <div><div class="sec">Expense categories · YTD</div><table class="ct"><thead><tr><th></th><th>YTD</th><th></th><th>% of income</th><th>${MONTHS[c.mo-1]===MONTHS[11]?c.lyr:lyLab} %</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="blk cwl">${cwBlock(c,c.mo,{compact:true})}</div>
+  <div class="row"><div><div class="line"><span class="nm">Dental supplies · YTD</span><span class="vv"${c.budget!=null?` style="color:${c.dentAvg>c.budget?'#A32D2D':'#2f9e44'}"`:''}>${fK(c.dentY)}</span></div><div class="note">${c.budget!=null?'Averaging '+fM(c.dentAvg)+' a month, '+fM(Math.abs(c.dentAvg-c.budget))+' '+(c.dentAvg>c.budget?'over':'under')+' the '+fK(c.budget)+' monthly budget':'Averaging '+fM(c.dentAvg)+' a month · no supply budget set'}</div>${c.budget!=null?svgBullet(c.dentAvg,c.budget,Math.max(c.dentAvg,c.budget)*1.25,'Budget '+fK(c.budget),true):''}</div><div><div class="line"><span class="nm">Dental supplies · % of gross profit</span><span class="vv"${dentPct!=null?` style="color:${dentPct>6?'#A32D2D':'#2f9e44'}"`:''}>${dentPct!=null?fP(dentPct,1):'—'}</span></div><div class="note">${dentPct!=null?fK(c.dentY)+' dental supplies ÷ '+fK(c.incY)+' gross profit (P&amp;L) · target 5.5–6%':'No income loaded for this period'}</div>${dentPct!=null?svgBullet(dentPct,6,Math.max(dentPct,6)*1.25,'Target 6%',true):''}</div></div>
+</div>`;}
+/* Account order across many months: an account that only appears in some months is placed right after the account it
+   follows in its own month (QuickBooks' chart order), instead of at the end of its group. */
+function stmtOrder(lists){const ord=[];lists.forEach(([,entries])=>{let prev=null;entries.forEach(e=>{const segs=(e[0]?e[0].split('>'):[]).concat([e[1]]);
+  segs.forEach((s,i)=>{const k=segs.slice(0,i+1).join('>');
+    if(!ord.includes(k)){const at=prev==null?ord.length-1:ord.indexOf(prev);ord.splice(at+1,0,k);prev=k;}
+    else if(prev==null||ord.indexOf(k)>ord.indexOf(prev))prev=k;});});});
+  const idx={};ord.forEach((k,i)=>idx[k]=i);return idx;}
+function stmtSort(node,idx,pre){const key=k=>(pre?pre+'>':'')+k.name,big=1e9;
+  node.kids.sort((a,b)=>(idx[key(a)]??big)-(idx[key(b)]??big));node.kids.forEach(k=>{if(k.g)stmtSort(k,idx,key(k));});return node;}
+/* Statements for the annual report: P&L last full year vs YTD (each with % of income), balance sheet vs Dec 31 last year, YTD cash flows. */
+function statementsAnnualHTML(c){const out=[],MN=MONTHS[c.mo-1],d=new Date(+c.yr,c.mo,0).getDate(),ytdLab='Jan 1 - '+MN+' '+d+' '+c.yr;
+  const full=REPF.cmp==='full';   // prior-year column: same months last year (default) or the full prior year
+  const ytdL=c.ytd.filter(x=>x.detail&&x.detail.pl),pyL=(full?c.pyRows:c.ytdLY).filter(x=>x.detail&&x.detail.pl);
+  if(ytdL.length){const C=pyL.length?['PY','Y']:['Y'],L=pyL.map(x=>['PY',x.detail.pl]).concat(ytdL.map(x=>['Y',x.detail.pl])),t=stmtSort(stmtTree(L),stmtOrder(L),'');
+    const f=n=>t.kids.find(k=>k.name===n)||{name:n,kids:[],own:{},g:true},inc=f('Income'),ex=f('Expenses'),oi=f('Other Income'),oe=f('Other Expenses');
+    const base={};C.forEach(x=>base[x]=tTot(inc,x)||1);const R=[];
+    const cells=(fn,dol,show)=>C.map(x=>{const v=fn(x);return `<td>${show===false?'':qn(v,dol)}</td><td>${show===false?'':qp(v/base[x]*100)}</td>`;}).join('');
+    const walk=(node,depth)=>node.kids.forEach(k=>{if(!tNz(k,C))return;const pad=6+depth*11;
+      if(k.g){const has=C.some(x=>k.own[x]);R.push(`<tr${depth===0?' class="qtop"':''}><td class="n" style="padding-left:${pad}px">${esc(k.name)}</td>${cells(x=>k.own[x]||0,1,has)}</tr>`);walk(k,depth+1);
+        R.push(`<tr class="tot"><td class="n" style="padding-left:${pad}px">Total for ${esc(k.name)}</td>${cells(x=>tTot(k,x),1)}</tr>`);}
+      else R.push(`<tr><td class="n" style="padding-left:${pad}px">${esc(k.name)}</td>${cells(x=>k.own[x]||0,0)}</tr>`);});
+    const one=n=>walk({kids:[n]},0),sum=(lab,fn,cls)=>R.push(`<tr class="${cls||'sum'}"><td class="n">${lab}</td>${cells(fn,1)}</tr>`);
+    one(inc);sum('Gross Profit',x=>tTot(inc,x));one(ex);sum('Net Operating Income',x=>tTot(inc,x)-tTot(ex,x));one(oi);one(oe);
+    sum('Net Other Income',x=>tTot(oi,x)-tTot(oe,x));sum('Net Income',x=>tTot(inc,x)-tTot(ex,x)+tTot(oi,x)-tTot(oe,x),'grand');
+    const pyLab=!pyL.length?'':full?(pyL.length===12?c.lyr:MONTHS[+pyL[0].ym.slice(5,7)-1]+' - '+MONTHS[+pyL[pyL.length-1].ym.slice(5,7)-1]+' '+c.lyr)
+      :(pyL.length===c.mo?'Jan 1 - '+MN+' '+d+' '+c.lyr:MONTHS[+pyL[0].ym.slice(5,7)-1]+' - '+MONTHS[+pyL[pyL.length-1].ym.slice(5,7)-1]+' '+c.lyr+' (partial)');
+    const hd=(pyL.length?[pyLab,'% of Income']:[]).concat([ytdLab,'% of Income']);
+    const perLab=!pyL.length?'January - '+monthName(c.ym)+' '+c.yr:full?'January '+c.lyr+' - '+monthName(c.ym)+' '+c.yr:'January - '+monthName(c.ym)+', '+c.lyr+' and '+c.yr;
+    out.push(stmtPages('Profit and Loss',perLab,hd,R,'Cash Basis'));
+  }else out.push('<div class="fpage stmt"><div class="qmiss">QuickBooks P&amp;L detail is not loaded for this year yet.</div></div>');
+  const bs=c.r.detail&&c.r.detail.bs,decR=state.finRows.find(x=>x.ym===c.lyr+'-12'),pbs=decR&&decR.detail&&decR.detail.bs;
+  if(bs&&bs.length){const t=stmtTree([['A',bs]].concat(pbs?[['P',pbs]]:[])),R=[];
+    const rowsBS=(node,depth)=>node.kids.forEach(k=>{if(!tNz(k,['A','P']))return;const pad=6+depth*11;
+      if(k.g){const has=(k.own.A||k.own.P);R.push(`<tr${depth===0?' class="qtop"':''}><td class="n" style="padding-left:${pad}px">${esc(k.name)}</td>${has?`<td>${qn(k.own.A,1)}</td><td>${qn(k.own.P,1)}</td><td>${qn((k.own.A||0)-(k.own.P||0),1)}</td>`:'<td></td><td></td><td></td>'}</tr>`);rowsBS(k,depth+1);
+        const a=tTot(k,'A'),p=tTot(k,'P');R.push(`<tr class="${depth===0?'grand':'tot'}"><td class="n" style="padding-left:${pad}px">Total for ${esc(k.name)}</td><td>${qn(a,1)}</td><td>${qn(p,1)}</td><td>${qn(a-p,1)||'$0.00'}</td></tr>`);}
+      else{const a=k.own.A||0,p=k.own.P||0;R.push(`<tr><td class="n" style="padding-left:${pad}px">${esc(k.name)}</td><td>${qn(a)||'0.00'}</td><td>${qn(p)||'0.00'}</td><td>${qn(a-p)||'0.00'}</td></tr>`);}});
+    rowsBS(t,0);
+    out.push(stmtPages('Balance Sheet','As of '+MN+' '+d+', '+c.yr,['As of '+MN+' '+d+', '+c.yr,pbs?'As of Dec 31, '+c.lyr+' (PY)':'Dec 31, '+c.lyr+' (not loaded)','$ Change'],R,'Cash Basis'));
+  }else out.push('<div class="fpage stmt"><div class="qmiss">Balance sheet detail for '+monthName(c.ym)+' '+c.yr+' is not loaded yet.</div></div>');
+  out.push(scfStmtPage(c,true));
+  return out.join('');}
 
 // Print the financial report in an isolated frame so the app's own layout can't interfere.
 function printFinDoc(){
@@ -2833,8 +2927,9 @@ function printFinDoc(){
     .fpage{margin:0!important;box-shadow:none!important;width:7.7in;height:10.35in;min-height:0;padding:.05in .2in .1in;break-after:page;page-break-after:always;break-inside:avoid;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .fpage.stmt{width:7.7in;height:auto;padding:0 .15in;overflow:visible;break-inside:avoid}
     .fpage:last-child{break-after:auto;page-break-after:auto}
-    .fedit{border-bottom:none!important;background:none!important}`;
-  const name=(state.current&&state.current.name||'Practice')+' - '+monthName(REPF.ym)+' '+REPF.ym.slice(0,4)+' Financial Report';
+    .fedit{border-bottom:none!important;background:none!important}
+    .fpage.fcover{height:10.35in!important;padding:0!important}`;
+  const name=(state.current&&state.current.name||'Practice')+' - '+(REP.type==='finA'?'YTD '+monthName(REPF.ym)+' '+REPF.ym.slice(0,4)+' Annual':monthName(REPF.ym)+' '+REPF.ym.slice(0,4))+' Financial Report';
   let fr=document.getElementById('finPrintFrame');if(fr)fr.remove();
   fr=document.createElement('iframe');fr.id='finPrintFrame';fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
   document.body.appendChild(fr);
@@ -2845,13 +2940,13 @@ function printFinDoc(){
   Promise.all(imgs.map(im=>im.complete?Promise.resolve():new Promise(r=>{im.onload=im.onerror=r;}))).then(()=>{
     setTimeout(()=>{const t=document.title;document.title=name;fr.contentWindow.focus();fr.contentWindow.print();setTimeout(()=>{document.title=t;},1000);},150);});
 }
-function reportFinancial(host){
+function reportFinancial(host,annual){
   const rows=(state.finRows||[]);if(!rows.length){host.innerHTML='<div class="rnote">No financials loaded for this practice yet.</div>';return;}
   if(!REPF.ym||!rows.some(r=>r.ym===REPF.ym))REPF.ym=rows[rows.length-1].ym;
-  const c=finCtx(REPF.ym);
-  const pages=layoutClassic(c);   // Oct 30 2026: accounting chose this layout; the other five were removed
+  const c=annual?finCtxA(REPF.ym):finCtx(REPF.ym);
+  const pages=annual?layoutAnnual(c):layoutClassic(c);   // Oct 30 2026: accounting chose this layout; the other five were removed
   host.innerHTML=`<div class="fhint">Text with an <span class="fedit">orange dashed underline</span> is a draft &mdash; click it to edit before printing. Edits aren't saved; the printed PDF is the record.<br>Overhead target ${c.tgt!=null?c.tgt.toFixed(0)+'%':'not set'} · cash goal ${c.goal!=null?fM(c.goal):'not set'}${c.budget!=null?' · supply budget '+fM(c.budget)+(c.p.supplyBudget!=null?' (from Business Notes)':' (avg dental supplies for the 12 months before the '+monthName(c.renewYm)+' '+c.renewYm.slice(0,4)+' renewal)'):''}</div>`
-    +`<div class="fdoc">${pages}${statementsHTML(c)}</div>`;
+    +`<div class="fdoc">${annual?finCover('ANNUAL MEETING<br>FINANCIAL REPORT','Year to date through '+monthName(c.ym)+' '+c.yr):finCover('MONTHLY<br>FINANCIAL REPORT',monthName(c.ym)+' '+c.yr)}${pages}${annual?statementsAnnualHTML(c):statementsHTML(c)}</div>`;
 }
 
 /* ---------- login (web/deployed mode only) ---------- */
